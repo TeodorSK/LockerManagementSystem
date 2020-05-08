@@ -1,0 +1,24 @@
+#lang web-server/insta
+ 
+; A blog is a (listof post)
+; and a post is a (post title body)
+(struct post (title body))
+
+(define first-post (post "firsttitle" "bodyey"))
+(define my-blog (list (post "Post 1" "Body 1")
+                    (post "Post 2" "Body 2")))
+
+(define (render-posts posts)
+  `(div ((class "posts")) ,@(map render-post posts)))
+
+(define (render-post a-post )
+  `(div ((class "post")) ,(post-title a-post) 
+        (p ,(post-body a-post))))
+
+(define (start request)
+  render-blog-page my-blog request)
+
+(define (render-blog-page a-blog request)
+  (response/xexpr
+   `(html (head (title "welcomeboy"))
+          (body ,(render-posts a-blog)))))

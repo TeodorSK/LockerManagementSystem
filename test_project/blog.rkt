@@ -1,13 +1,6 @@
 #lang web-server/insta
-;-----== structs ==------
-(struct post (title body comments) #:mutable)
-(struct blog (posts) #:mutable)
 
-;-----== definitions ==------
-(define first-locker (post "firsttitle" "bodyey" empty))
-(define BLOG (blog (list (post "Post 1" "Body 1" (list "heyy!!!" "whaaat???"))
-                         (post "Post 2" "Body 2" empty))))
-
+(requre "model.rkt")
 
 ;-----== handlers ==------
 (define (start request)
@@ -18,7 +11,10 @@
 (define (render-home-page request)
   (define (response-generator embed/url)
     (response/xexpr
-     `(html (head (title "Locker Management System"))
+     `(html (head (title "Locker Management System")
+                  (link ((rel "stylesheet")
+                       (href "/blog.css")
+                       (type "text/css"))))
             (body
              (h1 "It's the blog")
              ,(render-posts embed/url)
@@ -30,7 +26,7 @@
                    (input ((type "submit"))))))))
   (define (insert-post-handler request)
     (blog-insert-post! BLOG (parse-post (request-bindings request)))
-    (render-home-page request))
+    (render-home-page (redirect/get)))
   (send/suspend/dispatch response-generator))
 
 ;Post detail page
@@ -38,7 +34,10 @@
 (define (render-post-detail-page a-post request)
   (define (response-generator embed/url)
     (response/xexpr
-     `(html (head (title "Locker Management System"))
+     `(html (head (title "Locker Management System")
+                  (link ((rel "stylesheet")
+                       (href "/blog.css")
+                       (type "text/css"))))
             (body
              ,(render-post-details a-post)
              
@@ -51,21 +50,36 @@
                    (button ((type "submit")) "Back"))))))
 
   (define (insert-comment-handler a-request)
-    (post-insert-comment! a-post (parse-comment (request-bindings a-request)))
-    (render-post-detail-page a-post a-request))
+    (render-confirm-add-comment-page
+     (parse-comment (request-bindings a-request)) a-post a-request))
   
+  (send/suspend/dispatch response-generator))
+
+;Confirm add comment page
+;render-confirm-add-comment-page
+(define (render-confirm-add-comment-page a-comment a-post request)
+  (define (response-generator embed/url)
+    (response/xexpr
+     `(html (head (title "Confirm comment")
+                  (link ((rel "stylesheet")
+                       (href "/blog.css")
+                       (type "text/css"))))
+            (body
+             (h1 "Posting to:") ,(post-title a-post)
+             (h2 "Comment:")
+             (div (p ,a-comment))
+             (a ((href ,(embed/url confirm-comment-handler))) "Confirm")
+             (a ((href ,(embed/url cancel-comment-handler))) "Cancel")
+             ))))
+  (define (confirm-comment-handler a-request)
+    (post-insert-comment! a-post a-comment)
+    (render-post-detail-page a-post (redirect/get)))
+  (define (cancel-comment-handler a-request)
+    (render-post-detail-page a-post (redirect/get)))
   (send/suspend/dispatch response-generator))
   
 
 ;-----== aux functions ==------
-(define (post-insert-comment! a-post new-comment)
-  (set-post-comments! a-post (cons new-comment
-                                   (post-comments a-post))))
-
-(define (blog-insert-post! a-blog new-post)
-  (set-blog-posts! a-blog (cons new-post
-                                (blog-posts a-blog))))
-
 (define (can-parse-post? bindings)
   (and (exists-binding? 'title bindings)
        (exists-binding? 'body bindings)))
@@ -85,7 +99,8 @@
   `(div ((class "posts"))
         ,@(map render-post/embed/url (blog-posts BLOG))))
 
-;this renders post details
+;render-post-details: post -> xexpr/c
+;Render a single post in the homepage
 (define (render-post-details a-post)
   `(div ((class "post"))
         (h1 "Post details:")
@@ -111,3 +126,5 @@
 
 (define (render-as-item a-fragment)
   `(li ,a-fragment))
+
+(static-files-path "htdocs")

@@ -1,0 +1,33 @@
+#lang racket/base
+(require "model-2.rkt")
+
+;-----== handlers ==------
+(define (start request)
+  (render-home-page
+   (init-db!
+    (build-path (current-directory)
+                "database.db"))
+   request))
+
+;Home page
+;render-home-page: request -> void
+(define (render-home-page a-db request)
+  (define (response-generator embed/url)
+    (response/xexpr
+     `(html (head (title "Locker Management System")
+                  (link ((rel "stylesheet")
+                       (href "/blog.css")
+                       (type "text/css"))))
+            (body
+             (h1 "Lockers:")
+             ,(render-posts a-db embed/url)
+
+             (form ((action
+                     ,(embed/url insert-post-handler)))
+                   (input  ((type "text") (name "title")))
+                   (input  ((type "text") (name "body")))
+                   (input ((type "submit"))))))))
+  (define (insert-post-handler request)
+    (db-insert-post! a-db (parse-post (request-bindings request)))
+    (render-home-page (redirect/get)))
+  (send/suspend/dispatch response-generator))

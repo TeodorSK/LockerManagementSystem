@@ -1,1 +1,1 @@
-("7.6" racket ("eab20ea9665f9d3a0c705cd2cf5a0d20f8a1c627" . "5142eefdc167dd89a2c3272603d64677ef84e508") (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"base.rkt") (collects #"racket" #"runtime-config.rkt"))
+("7.6" racket ("d5645ed8b2dff7abfe86b365398d243792072dee" . "beb050d8727fefff1ebe2610a193362de46f4caf") (collects #"csv-reading" #"main.rkt") (collects #"db" #"main.rkt") (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"base.rkt") (collects #"racket" #"list.rkt") (collects #"racket" #"runtime-config.rkt"))

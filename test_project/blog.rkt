@@ -1,14 +1,18 @@
 #lang web-server/insta
 
-(requre "model.rkt")
+(require "model.rkt")
 
 ;-----== handlers ==------
 (define (start request)
-  (render-home-page request))
+  (render-home-page
+   (initialize-db!
+    (build-path (current-directory)
+                "database.db"))
+   request))
 
 ;Home page
 ;render-home-page: request -> void
-(define (render-home-page request)
+(define (render-home-page a-db request)
   (define (response-generator embed/url)
     (response/xexpr
      `(html (head (title "Locker Management System")
@@ -16,8 +20,8 @@
                        (href "/blog.css")
                        (type "text/css"))))
             (body
-             (h1 "It's the blog")
-             ,(render-posts embed/url)
+             (h1 "It's the db")
+             ,(render-posts a-db embed/url)
 
              (form ((action
                      ,(embed/url insert-post-handler)))
@@ -25,7 +29,7 @@
                    (input  ((type "text") (name "body")))
                    (input ((type "submit"))))))))
   (define (insert-post-handler request)
-    (blog-insert-post! BLOG (parse-post (request-bindings request)))
+    (db-insert-post! a-db (parse-post (request-bindings request)))
     (render-home-page (redirect/get)))
   (send/suspend/dispatch response-generator))
 
@@ -93,11 +97,11 @@
 (define (parse-comment bindings)
     (extract-binding/single 'comment bindings))
 
-(define (render-posts embed/url)
+(define (render-posts DB embed/url)
   (define (render-post/embed/url a-post)
     (render-post a-post embed/url))
   `(div ((class "posts"))
-        ,@(map render-post/embed/url (blog-posts BLOG))))
+        ,@(map render-post/embed/url (DB-posts DB))))
 
 ;render-post-details: post -> xexpr/c
 ;Render a single post in the homepage

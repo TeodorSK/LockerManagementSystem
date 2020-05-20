@@ -4,6 +4,7 @@
 (require csv-reading)
 
 
+
 ;-----== structs ==------
 (struct locker
   (id
@@ -28,7 +29,7 @@
     (query-exec db
                 (string-append
                  "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lockid INTEGER)"))
-    (insert-locker db 14 "near here" 0))
+    (insert-locker db 14 "near here (sample locker)" 0))
   db)
 
 (define (db-import-csv! a-db file)
@@ -74,6 +75,11 @@
    a-db
    "INSERT INTO lockers (id, location, lockid) VALUES (?, ?, ?)"
    id location lockid))
+
+(define (clear-db! a-db)
+  (query-exec
+   a-db
+   "DELETE FROM lockers"))
 
 
 (provide (all-defined-out))

@@ -37,11 +37,11 @@
     (define locker-num (list-ref a-row 1))
     (define locker-location (list-ref a-row 3))
     (if (and
-       (string->number locker-num) ;check if unique      
-       (string? locker-location))
-      (insert-locker a-db locker-num locker-location 0)
-      ;(list locker-num locker-location)
-      "incorrect format (not unique or not int, str)"))
+         (string->number locker-num) ;check if unique      
+         (string? locker-location))
+        (insert-locker a-db locker-num locker-location 0)
+        ;(list locker-num locker-location)
+        "incorrect format (not unique or not int, str)"))
   (csv-map extract-locker-data-from-row file))
 
 ;(open-input-file "htdocs/lockers.csv")
@@ -76,10 +76,16 @@
    "INSERT INTO lockers (id, location, lockid) VALUES (?, ?, ?)"
    id location lockid))
 
-(define (clear-db! a-db)
-  (query-exec
-   a-db
-   "DELETE FROM lockers"))
+(define (clear-selected-lockers! a-db locker-ids)
+  (define (clear-db! an-id)
+    (query-exec
+     a-db
+     "DELETE FROM lockers WHERE id = ?"
+     an-id))
+  (print locker-ids)
+  (map clear-db! locker-ids))
+
+
 
 
 (provide (all-defined-out))

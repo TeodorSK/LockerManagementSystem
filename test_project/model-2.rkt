@@ -6,12 +6,11 @@
 
 
 ;-----== structs ==------
+;These are just local references
+;TODO: maybe useless, along with db-lockers
 (struct locker
   (id
-   location
-   [lockid #:mutable]
    db))
-;need reference to db?
 
 (struct student
   (id
@@ -32,10 +31,12 @@
                  "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lockid INTEGER)"))
     
     (insert-locker db 14 "near here (sample locker)" 0))
-  (unless (table-exists? db "students")    
+  (unless (table-exists? db "students")
+    (print "Creating students table")
     (query-exec db
                 (string-append
-                 "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)")))
+                 "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)"))
+    (insert-student db 1 "john" "doe" "compsci" "abc@abc.com"))
   db)
 
 (define (db-import-locker-csv! a-db file)
@@ -64,11 +65,9 @@
          (string? student-program)
          (string? student-email))
         (insert-student a-db student-id student-firstname student-lastname student-program student-email)
-        ;(list locker-num locker-location)
         "incorrect format (not unique or not int, str)"))
   (csv-map extract-student-data-from-row file))
 
-;(open-input-file "htdocs/lockers.csv")
 
 (define (extract-locker-data-from-row a-db a-row)
   (define locker-num (list-ref a-row 1))
@@ -77,18 +76,21 @@
        (string->number locker-num) ;check if unique      
        (string? locker-location))
       (insert-locker a-db (string->number locker-num) locker-location 0)
-      ;(list locker-num locker-location)
       "incorrect format (not unique or not int, str)"))
-  
+
+
+;Next two functions may be very redundant
+;lists all id-s of students
 (define (db-students a-db)
   (define (id->student an-id)
     (student an-id a-db))
   (map id->student
-       (query-list a-db "SELECT id FROM lockers")))
+       (query-list a-db "SELECT id FROM students")))
 
+;lists all id-s of lockers
 (define (db-lockers a-db)
   (define (id->locker an-id)
-    (locker an-id "nowhere" 0 a-db))
+    (locker an-id a-db))
   (map id->locker
        (query-list a-db "SELECT id FROM lockers")))
 
@@ -104,17 +106,31 @@
    "SELECT lastname FROM students WHERE id = ?"
    (student-id a-student)))
 
+(define (student-program a-student)
+  (query-value
+   (student-db a-student)
+   "SELECT program FROM students WHERE id = ?"
+   (student-id a-student)))
+
 (define (student-email a-student)
   (query-value
    (student-db a-student)
    "SELECT email FROM students WHERE id = ?"
    (student-id a-student)))
 
-(define (my-locker-location a-locker)
+(define (locker-location a-locker)
   (query-value
    (locker-db a-locker)
    "SELECT location FROM lockers WHERE id = ?"
    (locker-id a-locker)))
+
+
+;this is how they should all be, instead of relying on local locker object
+(define (temp-locker-location a-db id)
+  (query-value
+   a-db
+   "SELECT location FROM lockers WHERE id = ?"
+   id))
 
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
@@ -135,6 +151,7 @@
      "DELETE FROM lockers WHERE id = ?"
      an-id))
   (print locker-ids)
+  (print "^^locker ids")
   (map clear-db! locker-ids))
 
 

@@ -11,7 +11,7 @@
   (render-admin-dashboard
    (init-db!
     (build-path (current-directory)
-                "database5.db"))
+                "database7.db"))
    request))
 
 (define (render-login-page a-db request)
@@ -94,14 +94,16 @@
                                    [method "POST"]
                                    [enctype "multipart/form-data"])
                                   ,@(formlet-display file-upload-formlet)
-                                  (input ([type "submit"] [value "Upload"]))))
+                                  (input ([type "submit"] [value "Upload"])))
+                                 (form ([action ,(embed/url dashboard-handler)])
+                                       (input ((type "submit")(value "Back")))))
 
                             (div ((class "w3-twothird w3-card-4"))
                                  (h1 "Lockers:")
                                  (form
                                   ([action ,(embed/url clear-db-handler)]
                                    [method "POST"]
-                                   [enctype "multipart/form-data"])
+                                   (name "id"))
                                   (input ([type "submit"] [value "Clear Selected Lockers from DB"])) ; Replace with formlet
                                   ,(render-lockers a-db embed/url)))))))))
 
@@ -109,23 +111,16 @@
   (define (view-locker-handler request)
     (render-view-lockers a-db request))
   
-  (define (render-lockers a-db embed/url)   
-    `(div ((class "lockers"))
-          (table (th "select all") (th "Locker number") (th "Location") (th "Details")
-                 ,@(map (λ (locker)(render-locker-row locker embed/url)) (db-lockers a-db)))))
-
-  (define (render-locker-row a-locker embed/url)
-    (define (id-value) (number->string (locker-id a-locker)))
-    `(tr
-      (td (input ((type "checkbox")(id ,(id-value))(value ,(id-value))))) ;TODO: fix checkbox
-      (td ,(id-value))
-      (td ,(my-locker-location a-locker))
-      (td (form ([action ,(embed/url view-locker-handler)])
-                (input ((type "submit")(id ,(id-value))(name ,(id-value))(value "Details")))))))
-
   (define (clear-db-handler request)
-    (clear-selected-lockers! a-db (list (request-bindings request)))
+    ;(print (map cdr (request-bindings request)))
+    (clear-selected-lockers! a-db (map cdr (request-bindings request)))
     (render-view-lockers a-db (redirect/get)))
+
+  (define (dashboard-handler request)
+    (render-admin-dashboard a-db (redirect/get)))
+  
+  (define (view-locker-details-handler request)
+    (render-locker-details a-db request))
   
   (define (import-csv-handler request)
     (define-values (fname fcontents)
@@ -136,13 +131,29 @@
     (db-import-locker-csv! a-db (open-input-file (build-path (current-directory) save-name)))
     (render-upload-successful-page a-db (redirect/get)))
 
+  (define (render-lockers a-db embed/url)   
+    `(div ((class "lockers"))
+          (table (th "select all") (th "Locker number") (th "Location") (th "Details")
+                 ,@(map (λ (locker)(render-locker-row locker embed/url)) (db-lockers a-db)))))
+
+  (define (render-locker-row a-locker embed/url)
+    (define (id-value) (number->string (locker-id a-locker)))
+    `(tr
+      (td (input ((type "checkbox")(name "id")(value ,(id-value))))) ;TODO: fix checkbox
+      (td ,(id-value))
+      (td ,(locker-location a-locker))
+      (td (form ([action ,(embed/url view-locker-details-handler)])
+                (button ((type "submit")(name "details-id")(value ,(id-value))) "Details")
+                ))))
+
+
   (send/suspend/dispatch response-generator))
 
 ;View Students
 (define (render-view-students a-db request)
 
   ;TODO: import students  or make file upload system
-  (db-import-student-csv! a-db (open-input-file (build-path (current-directory) "students.csv")))
+  ;(db-import-student-csv! a-db (open-input-file (build-path (current-directory) "students.csv")))
   
   (define (response-generator embed/url)
     (response/xexpr
@@ -157,11 +168,13 @@
                                  (h2 "Actions:")                           
                                  (h3 "Upload locker CSV file:")
                                  (form 
-                                  ([action ,(embed/url temp-handler)] ; handler fix
+                                  ([action ,(embed/url import-csv-handler)] ; handler fix
                                    [method "POST"]
                                    [enctype "multipart/form-data"])
                                   ,@(formlet-display file-upload-formlet)
-                                  (input ([type "submit"] [value "Upload"]))))
+                                  (input ([type "submit"] [value "Upload"])))
+                                 (form ([action ,(embed/url dashboard-handler)])
+                                       (input ((type "submit")(value "Back")))))
 
                             (div ((class "w3-twothird w3-card-4"))
                                  (h1 "Students:")
@@ -169,28 +182,41 @@
                                   ([action ,(embed/url temp-handler)] ;handler fix
                                    [method "POST"]
                                    [enctype "multipart/form-data"])
-                                  (input ([type "submit"] [value "Clear Selected Lockers from DB"])) ; Replace with formlet
+                                  (input ([type "submit"] [value "Assign lockers to selected students"]))
                                   ,(render-students a-db embed/url)))))))))
 
   (define (temp-handler request)
-    (render-view-students a-db request))
+    (render-view-students a-db (redirect/get)))
+
+  (define (dashboard-handler request)
+    (render-admin-dashboard a-db (redirect/get)))
+
+  (define (import-csv-handler request)
+    (define-values (fname fcontents)
+      (formlet-process file-upload-formlet request))
+    ;Saves a local copy of the upload file under name "!uploaded-filename"
+    (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
+    (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
+    (db-import-locker-csv! a-db (open-input-file (build-path (current-directory) save-name)))
+    (render-upload-successful-page a-db (redirect/get)))
 
   (define (render-students a-db embed/url)   
     `(div ((class "students"))
           (table (th "select all") (th "First Name") (th "Last Name") (th "Program") (th "Email")
                  ,@(map (λ (student)(render-student-row student embed/url)) (db-students a-db)))))
 
-(define (render-student-row a-student embed/url)
+  (define (render-student-row a-student embed/url)
     (define (id-value) (number->string (student-id a-student)))
     `(tr
       (td (input ((type "checkbox")(id ,(id-value))(value ,(id-value))))) ;TODO: fix checkbox
-      (td ,(id-value))
+      ;(td ,(id-value))
       (td ,(student-firstname a-student))
       (td ,(student-lastname a-student))
+      l;(td ,(student-program a-student))
+      (td ,(student-email a-student))
       (td (form ([action ,(embed/url temp-handler)])
                 (input ((type "submit")(id ,(id-value))(name ,(id-value))(value "Details")))))
-      (td ,(student-email a-student))))
-
+      ))
 
   (send/suspend/dispatch response-generator))
   
@@ -210,8 +236,19 @@
                             
                             (div ((class "w3-twothird w3-card-4"))
                                  (h1 "Locker Details:")
-                                 ;Perform SQL query based on bindings and desplay details
+
+                                ,(display-locker-info (extract-binding/single 'details-id (request-bindings request)))
+                                
+                                 
                                  )))))))
+
+  (define (display-locker-info id)
+    `(div ((class "w3-gray"))
+          (h2 "Locker ID:")
+          (h3 ,id)
+          (h3 "Locker Location:") ,(temp-locker-location a-db id)
+          (h3 "Locker owner:")
+          (h3 "Notes:")))
 
   (send/suspend/dispatch response-generator))
   
@@ -238,8 +275,8 @@
 (define login-formlet
   (formlet
    ,(=> (radio-group (list "Admin" "Student"))
-                     usertype)
-        usertype))
+        usertype)
+   usertype))
 
 (define file-upload-formlet
   (formlet
@@ -253,7 +290,7 @@
 
 (require web-server/servlet-env)
 (serve/servlet start
-               #:launch-browser? #f
+               #:launch-browser? #t
                #:quit? #f
                #:listen-ip #f
                #:port 8000

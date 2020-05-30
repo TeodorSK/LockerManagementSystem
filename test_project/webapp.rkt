@@ -215,8 +215,7 @@
       l;(td ,(student-program a-student))
       (td ,(student-email a-student))
       (td (form ([action ,(embed/url temp-handler)])
-                (input ((type "submit")(id ,(id-value))(name ,(id-value))(value "Details")))))
-      ))
+                (input ((type "submit")(id ,(id-value))(name ,(id-value))(value "Details")))))))
 
   (send/suspend/dispatch response-generator))
   
@@ -239,15 +238,15 @@
 
                                 ,(display-locker-info (extract-binding/single 'details-id (request-bindings request)))
                                 
-                                 
                                  )))))))
 
   (define (display-locker-info id)
-    `(div ((class "w3-gray"))
+    `(div ((class "w3-white"))
           (h2 "Locker ID:")
           (h3 ,id)
           (h3 "Locker Location:") ,(temp-locker-location a-db id)
           (h3 "Locker owner:")
+          (p ,(locker-owner a-db id))
           (h3 "Notes:")))
 
   (send/suspend/dispatch response-generator))

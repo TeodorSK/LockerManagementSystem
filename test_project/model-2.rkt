@@ -124,6 +124,19 @@
    "SELECT location FROM lockers WHERE id = ?"
    (locker-id a-locker)))
 
+(define (locker-owner a-db id)
+  (string-append
+   (query-value
+   a-db
+   "SELECT firstname FROM students WHERE id =
+(SELECT student_id FROM student_locker WHERE locker_id = ?)"
+   id)
+   (query-value
+   a-db
+   "SELECT lastname FROM students WHERE id =
+(SELECT student_id FROM student_locker WHERE locker_id = ?)"
+   id)))
+
 
 ;this is how they should all be, instead of relying on local locker object
 (define (temp-locker-location a-db id)
@@ -150,8 +163,6 @@
      a-db
      "DELETE FROM lockers WHERE id = ?"
      an-id))
-  (print locker-ids)
-  (print "^^locker ids")
   (map clear-db! locker-ids))
 
 

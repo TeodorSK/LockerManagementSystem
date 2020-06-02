@@ -3,25 +3,6 @@
 (require racket/list)
 (require csv-reading)
 
-
-
-;-----== structs ==------
-;These are just local references
-;TODO: maybe useless, along with db-lockers
-(struct locker
-  (id
-   db))
-
-(struct student
-  (id
-   db))
-
-;-----== definitions ==------
-
-
-
-;-----== aux functions ==------
-
 ;init db returns db
 (define (init-db! home)
   (define db (sqlite3-connect #:database home #:mode 'create))
@@ -30,9 +11,8 @@
                 (string-append
                  "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lockid INTEGER)"))
     
-    (insert-locker db 14 "near here (sample locker)" 0))
+    (insert-locker db 1 "near here (sample locker)" 0))
   (unless (table-exists? db "students")
-    (print "Creating students table")
     (query-exec db
                 (string-append
                  "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)"))
@@ -78,67 +58,77 @@
       (insert-locker a-db (string->number locker-num) locker-location 0)
       "incorrect format (not unique or not int, str)"))
 
+;Lists all IDs
+(define (all-students a-db)
+  (query-list a-db "SELECT id FROM students"))
 
-;Next two functions may be very redundant
-;lists all id-s of students
-(define (db-students a-db)
-  (define (id->student an-id)
-    (student an-id a-db))
-  (map id->student
-       (query-list a-db "SELECT id FROM students")))
+(define (all-lockers a-db)
+  (query-list a-db "SELECT id FROM lockers"))
 
-;lists all id-s of lockers
-(define (db-lockers a-db)
-  (define (id->locker an-id)
-    (locker an-id a-db))
-  (map id->locker
-       (query-list a-db "SELECT id FROM lockers")))
-
-(define (student-firstname a-student)
+(define (student-firstname a-db id)
   (query-value
-   (student-db a-student)
+   a-db
    "SELECT firstname FROM students WHERE id = ?"
-   (student-id a-student)))
+   id))
 
-(define (student-lastname a-student)
+(define (student-lastname a-db id)
   (query-value
-   (student-db a-student)
+   a-db
    "SELECT lastname FROM students WHERE id = ?"
-   (student-id a-student)))
+   id))
 
-(define (student-program a-student)
+(define (student-program a-db id)
   (query-value
-   (student-db a-student)
+   a-db
    "SELECT program FROM students WHERE id = ?"
-   (student-id a-student)))
+   id))
 
-(define (student-email a-student)
+(define (student-email a-db id)
   (query-value
-   (student-db a-student)
+   a-db
    "SELECT email FROM students WHERE id = ?"
-   (student-id a-student)))
+   id))
 
-(define (locker-location a-locker)
+(define (locker-location a-db id)
   (query-value
-   (locker-db a-locker)
+   a-db
    "SELECT location FROM lockers WHERE id = ?"
-   (locker-id a-locker)))
+   id))
 
 (define (locker-owner a-db id)
+  (define (test-exn-handler exn)
+    "No owner found")
+  (with-handlers ([exn? test-exn-handler])
   (string-append
    (query-value
    a-db
    "SELECT firstname FROM students WHERE id =
 (SELECT student_id FROM student_locker WHERE locker_id = ?)"
    id)
+   " "
    (query-value
    a-db
    "SELECT lastname FROM students WHERE id =
 (SELECT student_id FROM student_locker WHERE locker_id = ?)"
-   id)))
+   id))))
 
+(define (temp-student-name a-db id)
+  (define (test-exn-handler exn)
+    (string-append
+     "Exception: "
+     exn))
+  (with-handlers ([exn? test-exn-handler])
+  (string-append
+   (query-value
+   a-db
+   "SELECT firstname FROM students WHERE id = ?"
+   id)
+   " "
+   (query-value
+   a-db
+   "SELECT lastname FROM students WHERE id = ?"
+   id))))
 
-;this is how they should all be, instead of relying on local locker object
 (define (temp-locker-location a-db id)
   (query-value
    a-db
@@ -164,9 +154,6 @@
      "DELETE FROM lockers WHERE id = ?"
      an-id))
   (map clear-db! locker-ids))
-
-
-
 
 (provide (all-defined-out))
 

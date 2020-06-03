@@ -17,6 +17,18 @@
                 (string-append
                  "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)"))
     (insert-student db 1 "john" "doe" "compsci" "abc@abc.com"))
+  (unless (table-exists? db "student_locker")
+    (query-exec db
+                (string-append
+                 "CREATE TABLE student_locker (
+        	student_locker_id	INTEGER,
+        	student_id      	INTEGER,
+        	locker_id       	INTEGER,
+        	valid_until     	TEXT,
+        	PRIMARY KEY(student_locker_id AUTOINCREMENT),
+        	FOREIGN KEY(student_id) REFERENCES students(id),
+        	FOREIGN KEY(locker_id) REFERENCES lockers(id))")) ;database7.db has valid_until as integer, beware
+    (insert-student-locker db 1 1 "forever"))
   db)
 
 (define (db-import-locker-csv! a-db file)
@@ -95,45 +107,52 @@
    "SELECT location FROM lockers WHERE id = ?"
    id))
 
-(define (locker-owner a-db id)
-  (define (test-exn-handler exn)
-    "No owner found")
-  (with-handlers ([exn? test-exn-handler])
-  (string-append
-   (query-value
-   a-db
-   "SELECT firstname FROM students WHERE id =
-(SELECT student_id FROM student_locker WHERE locker_id = ?)"
-   id)
-   " "
-   (query-value
-   a-db
-   "SELECT lastname FROM students WHERE id =
-(SELECT student_id FROM student_locker WHERE locker_id = ?)"
-   id))))
-
-(define (temp-student-name a-db id)
-  (define (test-exn-handler exn)
+(define (locker-owner a-db id) ;locker-id -> student-name
+  (define (exn-handler exn)
+    "No owner?")
+  (with-handlers ([exn? exn-handler])
     (string-append
-     "Exception: "
-     exn))
-  (with-handlers ([exn? test-exn-handler])
+     (query-value
+      a-db
+      "SELECT firstname FROM students WHERE id =
+(SELECT student_id FROM student_locker WHERE locker_id = ?)"
+      id)
+     " "
+     (query-value
+      a-db
+      "SELECT lastname FROM students WHERE id =
+(SELECT student_id FROM student_locker WHERE locker_id = ?)"
+      id))))
+
+(define (student-name a-db id)
   (string-append
    (query-value
-   a-db
-   "SELECT firstname FROM students WHERE id = ?"
-   id)
+    a-db
+    "SELECT firstname FROM students WHERE id = ?"
+    id)
    " "
    (query-value
-   a-db
-   "SELECT lastname FROM students WHERE id = ?"
-   id))))
+    a-db
+    "SELECT lastname FROM students WHERE id = ?"
+    id)))
 
-(define (temp-locker-location a-db id)
-  (query-value
-   a-db
-   "SELECT location FROM lockers WHERE id = ?"
-   id))
+;returns #t/#f
+;TODO: does it??? clean it up
+(define (student-owns-locker? a-db id)
+  (define (exn-handler exn)
+    #f) ;if query null, return 0
+  (with-handlers ([exn? exn-handler])
+
+;(equal? (query-value
+;     a-db
+;     "SELECT 1 FROM student_locker WHERE student_id = ?"
+;     id) 1)
+    
+    (query-value
+     a-db
+     "SELECT 1 FROM student_locker WHERE student_id = ?"
+     id)
+    ))
 
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
@@ -147,13 +166,23 @@
    "INSERT INTO lockers (id, location, lockid) VALUES (?, ?, ?)"
    id location lockid))
 
-(define (clear-selected-lockers! a-db locker-ids)
-  (define (clear-db! an-id)
-    (query-exec
-     a-db
-     "DELETE FROM lockers WHERE id = ?"
-     an-id))
-  (map clear-db! locker-ids))
+(define (insert-student-locker a-db student-id locker-id valid-until)
+  (query-exec
+   a-db
+   "INSERT INTO student_locker (student_id, locker_id, valid_until) VALUES (?, ?, ?)"
+   student-id locker-id valid-until))
+
+(define (clear-locker! a-db id)
+  (query-exec
+   a-db
+   "DELETE FROM lockers WHERE id = ?"
+   id))
+
+(define (clear-student! a-db id)
+  (query-exec
+   a-db
+   "DELETE FROM students WHERE id = ?"
+   id))
 
 (provide (all-defined-out))
 

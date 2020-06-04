@@ -140,14 +140,8 @@
 ;TODO: does it??? clean it up
 (define (student-owns-locker? a-db id)
   (define (exn-handler exn)
-    #f) ;if query null, return 0
+    #f) ;if query null, return #f
   (with-handlers ([exn? exn-handler])
-
-;(equal? (query-value
-;     a-db
-;     "SELECT 1 FROM student_locker WHERE student_id = ?"
-;     id) 1)
-    
     (query-value
      a-db
      "SELECT 1 FROM student_locker WHERE student_id = ?"
@@ -159,6 +153,24 @@
    a-db
    "INSERT INTO students (id, firstname, lastname, program, email) VALUES (?, ?, ?, ? ,?)"
    id firstname lastname program email))
+
+;students - listof student-id
+(define (mass-assign a-db students)
+  (define fixed_students (list-tail students 1)) ; For some reason, list of students always starts with "" - perhaps orphan form element?
+  (define len (length fixed_students))
+  (define lockers (take 
+                   (query-list
+                   a-db
+                   "SELECT id
+                    FROM lockers as locker1
+                    WHERE NOT EXISTS
+                    (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")
+                        len))
+
+  (print lockers)
+  ;Actually exec insert-student-locker on each student-locker using map
+  )
+                   
 
 (define (insert-locker a-db id location lockid)
   (query-exec

@@ -253,6 +253,9 @@
 
   (define (view-students-handler request)
     (render-view-students a-db (redirect/get)))
+
+  (define (add-student-locker-handler request)
+    (confirm-add-student-locker a-db request))
   
   (define (display-student-info id embed/url)
     (define owns
@@ -270,14 +273,48 @@
                    "Yeah!"
                    "Nope!"))
           ;TODO: make button disabled if student-owns-locker? returns false
-          (form ([action ,(embed/url view-students-handler)])
-                                       (input ([type "submit"][value "Add locker"][enabled ,(if (student-owns-locker? a-db id) "true" "false")])))
+          (form ([action ,(embed/url add-student-locker-handler)])
+                (input ([type "text"][id "locker-id"][name "locker-id"]))
+                (input ([type "submit"][value "Add locker"])))
           
           
           (h3 "Notes:")))
 
   (send/suspend/dispatch response-generator))
 
+;Confirm new student-locker
+(define (confirm-add-student-locker a-db request)
+  
+  (define locker-id (extract-binding/single 'locker-id (request-bindings request)))
+  
+  (define (response-generator embed/url)
+    (response/xexpr
+     `(html (head (title "Locker Management System")
+                  ,@(style-link))
+            (body ((class "w3-container"))
+                  (div ((class "w3-content w3-margin-top"))
+                       (div ((class "w3-row-padding"))
+                            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                                 (h2 "Confirm new locker assignment?")
+                                 (p ,locker-id) ;also make it display student name. ;)                  
+                                 (form ([action ,(embed/url confirm-handler)])
+                                       (input ([type "submit"][value "Confirm"])))
+                                 (form ([action ,(embed/url cancel-handler)])
+                                       (input ([type "submit"][value "Cancel"]))))))))))
+ 
+  (define (confirm-handler request)
+    ;extract bindings here and exec sql
+    ;TODO: reconstruct student id back into post request
+    ;so student detail page can be rendered
+    (render-view-students a-db (redirect/get)))
+
+  (define (cancel-handler request)
+    ;TODO: reconstruct student id back into post request
+    ;so student detail page can be rendered
+    (render-view-students a-db (redirect/get)))
+  
+  (send/suspend/dispatch response-generator))
+  
 ;Upload lockers
 (define (render-upload-lockers a-db request)
   (define (response-generator embed/url)

@@ -107,9 +107,20 @@
    "SELECT location FROM lockers WHERE id = ?"
    id))
 
-(define (locker-owner a-db id) ;locker-id -> student-name
+(define (locker-owner-id a-db id)
   (define (exn-handler exn)
-    "No owner?")
+    "No owner")
+  (with-handlers ([exn? exn-handler])
+     (query-value
+      a-db
+      "SELECT id FROM students WHERE id =
+(SELECT student_id FROM student_locker WHERE locker_id = ?)"
+      id)))
+  
+
+(define (locker-owner-name a-db id) ;locker-id -> student-name
+  (define (exn-handler exn)
+    "No owner")
   (with-handlers ([exn? exn-handler])
     (string-append
      (query-value
@@ -142,11 +153,13 @@
   (define (exn-handler exn)
     #f) ;if query null, return #f
   (with-handlers ([exn? exn-handler])
-    (query-value
+    (if (query-value
      a-db
      "SELECT 1 FROM student_locker WHERE student_id = ?"
      id)
-    ))
+    #t
+    #f
+    )))
 
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
@@ -155,22 +168,15 @@
    id firstname lastname program email))
 
 ;students - listof student-id
-(define (mass-assign a-db students)
-  (define fixed_students (list-tail students 1)) ; For some reason, list of students always starts with "" - perhaps orphan form element?
-  (define len (length fixed_students))
-  (define lockers (take 
-                   (query-list
-                   a-db
-                   "SELECT id
-                    FROM lockers as locker1
-                    WHERE NOT EXISTS
-                    (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")
-                        len))
+;returns - a list of available lockers for each student
+(define (mass-assign-get-lockers a-db students) ;just returns a list of locker ids
+  (take (query-list
+   a-db
+   "SELECT id FROM lockers as locker1 WHERE NOT EXISTS (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")
+   (length students)))
 
-  (print lockers)
-  ;Actually exec insert-student-locker on each student-locker using map
-  )
-                   
+(define (mass-assign a-db students lockers)
+  (map (λ (student locker) (insert-student-locker a-db student locker "mass-assigned")) students lockers))
 
 (define (insert-locker a-db id location lockid)
   (query-exec
@@ -183,6 +189,13 @@
    a-db
    "INSERT INTO student_locker (student_id, locker_id, valid_until) VALUES (?, ?, ?)"
    student-id locker-id valid-until))
+
+(define (students-locker-id a-db id) ;student-id -> locker-id
+  (query-value
+   a-db
+   "SELECT id FROM lockers WHERE id =
+ (SELECT locker_id FROM student_locker WHERE student_id = ?)"
+   id))
 
 (define (clear-locker! a-db id)
   (query-exec

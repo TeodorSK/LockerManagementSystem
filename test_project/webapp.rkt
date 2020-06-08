@@ -98,7 +98,9 @@
 
                             (div ((class "w3-twothird w3-card-4"))
                                  (h1 "Lockers:")
-                                 (form ([id "delete"][action ,(embed/url clear-db-handler)])                                       
+                                 (form ([id "delete"][action ,(embed/url clear-db-handler)])
+                                       ;first rendered details button gets associated with clear-db-handler, and deletes the locker
+                                       (input ([type "submit"][form "delete"][style "position: absolute; left: -9999px; width: 1px; height: 1px;"]))
                                        ,(render-lockers a-db embed/url)))))))))
 
 
@@ -131,7 +133,7 @@
       (td ,(id-value))
       (td ,(locker-location a-db an-id))
       (td (form ([action ,(embed/url view-locker-details-handler)])
-                (button ([type "submit"][name "details-id"][value ,(id-value)]) "Details")
+                (button ([type "submit"][name "locker-details-id"][value ,(id-value)]) "Details")
                 ))))
 
 
@@ -165,12 +167,8 @@
     (print "Handled!")
     (render-view-students a-db (redirect/get)))
 
-  (define (mass-assign-handler request)
-    (define students (map cdr (request-bindings request)))
-    (print students)
-    ;TODO: take user to separate confirm-assign page, list out locker-student pairs
-    (mass-assign a-db students)
-    (render-view-students a-db (redirect/get)))
+  (define (mass-assign-handler request)    
+    (confirm-mass-assign a-db request))
 
   (define (dashboard-handler request)
     (render-admin-dashboard a-db (redirect/get)))
@@ -180,7 +178,7 @@
 
   (define (render-students a-db embed/url)   
     `(div ((class "students"))
-          (table (th "select all") (th "First Name") (th "Last Name") (th "Program") (th "Email")
+          (table ([class "w3-table w3-striped w3-bordered"])(th "select all") (th "First Name") (th "Last Name") (th "Program") (th "Email")
                  ,@(map (λ (student)(render-student-row student embed/url)) (all-students a-db)))))
 
 
@@ -195,11 +193,18 @@
       (td ,(student-lastname a-db an-id))
       (td ,(student-program a-db an-id))
       (td (form ([action ,(embed/url view-student-details-handler)])
-                (button ([type "submit"][name "details-id"][value ,(id-value)]) "Details")))))
+                (button ([type "submit"][name "student-details-id"][value ,(id-value)]) "Details")))))
 
   (send/suspend/dispatch response-generator))
 
+;Confirm mass assign student-locker
 (define (confirm-mass-assign a-db request)
+
+  ; For some reason, list of students always starts with "" - perhaps orphan form element?
+  (define students (list-tail (map cdr (request-bindings request)) 1)) 
+  
+  (define lockers (map number->string (mass-assign-get-lockers a-db students)))
+  
   (define (response-generator embed/url)
     (response/xexpr
      `(html (head (title "Locker Management System")
@@ -210,21 +215,68 @@
                             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                                  (h2 "Confirm locker assignment")
                                 
-                                 (form ([action ,(embed/url temp-handler)])
+                                 (form ([action ,(embed/url confirm-handler)])
                                        (input ([type "submit"][value "Confirm"])))
-                                 (form ([action ,(embed/url temp-handler)])
+                                 (form ([action ,(embed/url cancel-handler)])
                                        (input ([type "submit"][value "Cancel"]))))
+                            
+                            (div ((class "w3-twothird w3-card-4"))
+                                 (table ([class "w3-table w3-striped w3-bordered"])(th "Student Ids")(th "Locker #s")
+                                        ,@(map render-row students lockers))
+                                
+                                 )))))))
+
+
+  (define (render-row student locker)
+    `(tr
+      (td ,student) (td ,locker)))
+  
+  (define (temp-handler request)
+    (print "handled!!!"))
+
+  (define (confirm-handler request)
+    ;actually do the query
+    (mass-assign a-db students lockers)
+    (mass-assign-successful-page a-db request))
+
+  (define (cancel-handler request)
+    (render-view-students a-db (redirect/get)))
+  
+  (send/suspend/dispatch response-generator))
+  
+
+
+;Mass assign successful
+(define (mass-assign-successful-page a-db request)
+  (define (response-generator embed/url)
+    (response/xexpr
+     `(html (head (title "Locker Management System")
+                  ,@(style-link))
+            (body ((class "w3-container"))
+                  (div ((class "w3-content w3-margin-top"))
+                       (div ((class "w3-row-padding"))
+                            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                                 (h2 "Assignment successful!")
+                                
+                                 (form ([action ,(embed/url view-students-handler)])
+                                       (input ([type "submit"][value "View Students"])))
+                                 (form ([action ,(embed/url dashboard-handler)])
+                                       (input ([type "submit"][value "Back to Dashboard"]))))
                             
                             (div ((class "w3-twothird w3-card-4"))                                 
                                 
                                  )))))))
 
-  (define (temp-handler request)
-    (print "handled!!!"))
+  (define (view-students-handler request)
+    (render-view-students a-db (redirect/get)))
+  
+  (define (dashboard-handler request)
+    (render-admin-dashboard a-db (redirect/get)))
+
   
   (send/suspend/dispatch response-generator))
-  
-  
+
+
 ;Locker details
 (define (render-locker-details a-db request)
   (define (response-generator embed/url)
@@ -244,27 +296,36 @@
                             (div ((class "w3-twothird w3-card-4"))
                                  (h1 "Locker Details:")
 
-                                 ,(display-locker-info (extract-binding/single 'details-id (request-bindings request)))
+                                 ,(display-locker-info (extract-binding/single 'locker-details-id (request-bindings request)) embed/url)
                                 
                                  )))))))
 
   (define (view-lockers-handler request)
     (render-view-lockers a-db (redirect/get)))
 
-  (define (display-locker-info id)
+  (define (student-details-handler request)
+    (render-student-details a-db request))
+
+  (define (display-locker-info id embed/url)
     `(div ((class "w3-white"))
           (h2 "Locker ID:")
           (h3 ,id)
           (h3 "Locker Location:") ,(locker-location a-db id)
           (h3 "Locker owner:")
-          (p ,(locker-owner a-db id))
+          (p ,(locker-owner-name a-db id))
+          (form ([action ,(embed/url student-details-handler)])
+                (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,(number->string (locker-owner-id a-db id))]))
+                (input ([type "submit"][value "Student Details"])))
+          
+          
+          ;TODO: Details button here
           (h3 "Notes:")))
 
   (send/suspend/dispatch response-generator))
 
 ;Student details
 (define (render-student-details a-db request)
-  (define details-id (extract-binding/single 'details-id (request-bindings request)))
+  (define student-details-id (extract-binding/single 'student-details-id (request-bindings request)))
   
   (define (response-generator embed/url)
     (response/xexpr
@@ -284,7 +345,7 @@
                             (div ((class "w3-twothird w3-card-4"))
                                  (h1 "Student Details:")
 
-                                 ,(display-student-info details-id embed/url)
+                                 ,(display-student-info student-details-id embed/url)
                                 
                                  )))))))
 
@@ -293,29 +354,42 @@
 
   (define (add-student-locker-handler request)
     (confirm-add-student-locker a-db request))
+
+  (define (locker-details-handler request)
+    (render-locker-details a-db request))
   
   (define (display-student-info id embed/url)
-    (define owns
-      (if (student-owns-locker? a-db id)
-          "Yeah!"
-          "Nope!"))
+
+    (print (student-owns-locker? a-db id))
     
     
     `(div ((class "w3-white"))
           (h2 "Student ID:")
           (h3 ,id)
           (h3 "Student Name:") ,(student-name a-db id)
-          (h3 "Owns locker?")
-          (p ,(if (student-owns-locker? a-db id)
-                  "Yeah!"
-                  "Nope!"))
-          ;TODO: make button disabled if student-owns-locker? returns false
-          (form ([action ,(embed/url add-student-locker-handler)])
+          ;(h3 "Owns locker?")
+          
+;          ,(unless 
+;                  `(p "Nope!")
+;                  `(p (h3 "Your locker ID:")
+;                     ,(number->string (students-locker-id a-db id))))                 
+          ;TODO: add details button here
+
+          ,(if (student-owns-locker? a-db id)
+              `(div
+                (h3 "Locker:")
+                ,(number->string (students-locker-id a-db id))
+                (form ([action ,(embed/url locker-details-handler)])
+                       (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,(number->string (students-locker-id a-db id))]))
+                       (input ([type "submit"][value "Locker details"]))))
+              `(div
+                (h3 "No locker assigned")
+                (form ([action ,(embed/url add-student-locker-handler)])
                 (input ([type "text"][id "locker-id"][name "locker-id"]))
                 (input ([type "hidden"][id "student-id"][name "student-id"][value ,id]))
-                (input ([type "submit"][value "Add locker"])))
+                (input ([type "submit"][value "Add locker"])))))
           
-          
+                             
           (h3 "Notes:")))
 
   (send/suspend/dispatch response-generator))
@@ -337,7 +411,7 @@
                                  (h2 "Confirm new locker assignment?")
                                  (p ,locker-id) ;also make it display student name. ;)                  
                                  (form ([action ,(embed/url confirm-handler)])
-                                       (input ([type "hidden"][id "details-id"][name "details-id"][value ,student-id]))
+                                       (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
                                        (input ([type "submit"][value "Confirm"])))
                                  (form ([action ,(embed/url cancel-handler)])
                                        (input ([type "submit"][value "Cancel"]))))))))))

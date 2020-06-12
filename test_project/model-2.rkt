@@ -22,8 +22,8 @@
                 (string-append
                  "CREATE TABLE student_locker (
         	student_locker_id	INTEGER,
-        	student_id      	INTEGER,
-        	locker_id       	INTEGER,
+        	student_id      	INTEGER UNIQUE,
+        	locker_id       	INTEGER UNIQUE,
         	valid_until     	TEXT,
         	PRIMARY KEY(student_locker_id AUTOINCREMENT),
         	FOREIGN KEY(student_id) REFERENCES students(id),
@@ -109,7 +109,7 @@
 
 (define (locker-owner-id a-db id)
   (define (exn-handler exn)
-    "No owner")
+    -1)
   (with-handlers ([exn? exn-handler])
      (query-value
       a-db

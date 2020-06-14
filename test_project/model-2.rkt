@@ -60,6 +60,19 @@
         "incorrect format (not unique or not int, str)"))
   (csv-map extract-student-data-from-row file))
 
+(define (assign-locks! a-db file)    
+  (define (extract-lock-row a-row)
+    (define locker-id (list-ref a-row 1))
+    (define lock-id (list-ref a-row 2))
+    (insert-locker-lock a-db locker-id lock-id))
+  (csv-map extract-lock-row file))
+
+(define (insert-locker-lock a-db locker-id lock-id)
+  (query-exec
+   a-db
+   "UPDATE lockers SET lockid = ? WHERE id = ?"
+   lock-id locker-id))
+
 
 (define (extract-locker-data-from-row a-db a-row)
   (define locker-num (list-ref a-row 1))
@@ -111,11 +124,20 @@
   (define (exn-handler exn)
     -1)
   (with-handlers ([exn? exn-handler])
-     (query-value
-      a-db
-      "SELECT id FROM students WHERE id =
+    (query-value
+     a-db
+     "SELECT id FROM students WHERE id =
 (SELECT student_id FROM student_locker WHERE locker_id = ?)"
-      id)))
+     id)))
+
+(define (lock-id a-db id) ;locker-id -> lock-id
+  (define (exn-handler exn)
+    -1)
+  (with-handlers ([exn? exn-handler])
+    (query-value
+     a-db
+     "SELECT lockid FROM lockers WHERE id = ?"
+     id)))
   
 
 (define (locker-owner-name a-db id) ;locker-id -> student-name
@@ -154,12 +176,12 @@
     #f) ;if query null, return #f
   (with-handlers ([exn? exn-handler])
     (if (query-value
-     a-db
-     "SELECT 1 FROM student_locker WHERE student_id = ?"
-     id)
-    #t
-    #f
-    )))
+         a-db
+         "SELECT 1 FROM student_locker WHERE student_id = ?"
+         id)
+        #t
+        #f
+        )))
 
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
@@ -171,9 +193,9 @@
 ;returns - a list of available lockers for each student
 (define (mass-assign-get-lockers a-db students) ;just returns a list of locker ids
   (take (query-list
-   a-db
-   "SELECT id FROM lockers as locker1 WHERE NOT EXISTS (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")
-   (length students)))
+         a-db
+         "SELECT id FROM lockers as locker1 WHERE NOT EXISTS (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")
+        (length students)))
 
 (define (mass-assign a-db students lockers)
   (map (λ (student locker) (insert-student-locker a-db student locker "mass-assigned")) students lockers))

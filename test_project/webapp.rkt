@@ -11,7 +11,7 @@
   (render-login-page
    (init-db!
     (build-path (current-directory)
-                "database10.db"))
+                "database11.db"))
    request))
 
 (define (render-login-page a-db request)
@@ -90,15 +90,17 @@
                                  
                  (form ([action ,(embed/url dashboard-handler)])
                        (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
+                 (form ([action ,(embed/url assign-locks-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "Assign locks to lockers"])))
                  (button ([class ,(button-style-class)][form "delete"][type "submit"][name "id"])"Delete selected lockers!"))
 
             (div ((class "w3-twothird w3-card-4"))
                  (h1 "Lockers:")
                  (form ([id "delete"][action ,(embed/url clear-db-handler)])
-                       ;first rendered details button gets associated with clear-db-handler, and deletes the locker
-                       ;(input ([type "submit"][form "delete"][style "position: absolute; left: -9999px; width: 1px; height: 1px;"]))
                        ,(render-lockers a-db embed/url)))))))
 
+  (define (assign-locks-handler request)
+    (assign-locks-page a-db request))
 
   (define (view-locker-handler request)
     (render-view-lockers a-db request))
@@ -250,7 +252,7 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 ((class "w3-green")) "Assignment successful!")
+                 (h2 ((class "w3-text-green")) "Assignment successful!")
                                 
                  (form ([action ,(embed/url view-students-handler)])
                        (input ([class ,(button-style-class)][type "submit"][value "View Students"])))
@@ -268,6 +270,43 @@
     (render-admin-dashboard a-db (redirect/get)))
   
   (send/suspend/dispatch response-generator))
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Assign Locks=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (assign-locks-page a-db request)
+  (define (response-generator embed/url)
+    (response/xexpr
+     (html-wrapper
+      `(div ((class "w3-row-padding"))
+            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                 (h2 "Upload locker-lock csv file")
+                                (form 
+                                  ([action ,(embed/url import-csv-handler)]
+                                   [method "POST"]
+                                   [enctype "multipart/form-data"])
+                                  ,@(formlet-display file-upload-formlet)
+                                  (input ([type "submit"] [value "Upload"])))
+
+                                
+                 )
+                            
+            (div ((class "w3-twothird w3-card-4"))                 
+                                
+                 )))))
+
+  (define (import-csv-handler request)
+    (define-values (fname fcontents)
+      (formlet-process file-upload-formlet request))
+    ;Saves a local copy of the upload file under name "!uploaded-filename"
+    (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
+    (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
+    (assign-locks! a-db (open-input-file (build-path (current-directory) save-name)))
+    (render-upload-successful-page a-db (redirect/get)))
+
+  (send/suspend/dispatch response-generator))
+
+
+
+
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Locker details=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-locker-details a-db request)
@@ -302,6 +341,7 @@
           (h2 "Locker ID:")
           (h3 ,id)
           (h3 "Locker Location:") ,(locker-location a-db id)
+          (h3 "Lock #:") ,(number->string (lock-id a-db id))
           (h3 "Locker owner:")
 
           
@@ -499,7 +539,7 @@
      `(html (head (title "Locker Management System")
                   ,@(style-link))
             (body
-             (h2 ((class "w3-green")) "File upload successful!")             
+             (h2 ((class "w3-text-green")) "File upload successful!")             
              (form ([action ,(embed/url dashboard-handler)])
                    (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))))))
 

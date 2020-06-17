@@ -9,7 +9,7 @@
   (unless (table-exists? db "lockers")
     (query-exec db
                 (string-append
-                 "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lockid INTEGER)"))
+                 "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lock_id INTEGER)"))
     
     (insert-locker db 1 "near here (sample locker)" 0))
   (unless (table-exists? db "students")
@@ -60,6 +60,16 @@
         "incorrect format (not unique or not int, str)"))
   (csv-map extract-student-data-from-row file))
 
+(define (extract-locker-lock-columns a-db file) ;file -> (list lockers locks)
+  (define lockers (list))
+  (define locks (list))
+  (define (extract-lock-row a-row)
+    (set! lockers (append (list (list-ref a-row 1)) lockers))
+    (set! locks (append (list (list-ref a-row 2)) locks))
+)
+  (csv-map extract-lock-row file)
+  (values lockers locks))
+
 (define (assign-locks! a-db file)    
   (define (extract-lock-row a-row)
     (define locker-id (list-ref a-row 1))
@@ -70,7 +80,7 @@
 (define (insert-locker-lock a-db locker-id lock-id)
   (query-exec
    a-db
-   "UPDATE lockers SET lockid = ? WHERE id = ?"
+   "UPDATE lockers SET lock_id = ? WHERE id = ?"
    lock-id locker-id))
 
 
@@ -136,9 +146,19 @@
   (with-handlers ([exn? exn-handler])
     (query-value
      a-db
-     "SELECT lockid FROM lockers WHERE id = ?"
+     "SELECT lock_id FROM lockers WHERE id = ?"
      id)))
   
+(define (locker-has-lock? a-db locker-id)
+  (define (exn-handler exn)
+    #f)
+  (with-handlers ([exn? exn-handler])
+    (if (query-value
+         a-db
+         "SELECT 1 FROM lockers WHERE id = ? AND lock_id <> '' AND lock_id <> 0"
+         locker-id)
+        #t
+        #f)))
 
 (define (locker-owner-name a-db id) ;locker-id -> student-name
   (define (exn-handler exn)
@@ -183,6 +203,18 @@
         #f
         )))
 
+(define (locker-owned? a-db id)
+  (define (exn-handler exn)
+    #f)
+  (with-handlers ([exn? exn-handler])
+    (if (query-value
+         a-db
+         "SELECT 1 FROM student_locker WHERE locker_id = ?"
+         id)
+        #t
+        #f
+        )))
+
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
    a-db
@@ -200,11 +232,11 @@
 (define (mass-assign a-db students lockers)
   (map (λ (student locker) (insert-student-locker a-db student locker "mass-assigned")) students lockers))
 
-(define (insert-locker a-db id location lockid)
+(define (insert-locker a-db id location lock-id)
   (query-exec
    a-db
-   "INSERT INTO lockers (id, location, lockid) VALUES (?, ?, ?)"
-   id location lockid))
+   "INSERT INTO lockers (id, location, lock_id) VALUES (?, ?, ?)"
+   id location lock-id))
 
 (define (insert-student-locker a-db student-id locker-id valid-until)
   (query-exec

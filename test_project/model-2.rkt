@@ -179,11 +179,13 @@
 
 (define (student-name a-db id)
   (string-append
+   ;(student-firstname a-db id)
    (query-value
     a-db
     "SELECT firstname FROM students WHERE id = ?"
     id)
    " "
+   ;(student-lastname a-db id)
    (query-value
     a-db
     "SELECT lastname FROM students WHERE id = ?"

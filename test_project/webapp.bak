@@ -7,11 +7,13 @@
 
 (require "model-2.rkt")
 
+(define admin-name "Teodor")
+
 (define (start request)
   (render-login-page
    (init-db!
     (build-path (current-directory)
-                "database11.db"))
+                "database14.db"))
    request))
 
 (define (render-login-page a-db request)
@@ -24,11 +26,28 @@
                        (div ((class "w3-row-padding"))
 
                             (div ((class "w3-card-4 w3-white w3-center"))
-                                 (h1 "Ryerson Locker Management System")
-                                 (h2 "Description")
-                                 (form ([action ,(embed/url login-handler)])                                   
-                                       ,@(formlet-display login-formlet)
-                                       (input ([class ,(button-style-class)][type "submit"] [value "Log in"]))))))))))
+                                 (img ((style "max-width:50%;height:auto;")(src "https://ryersonian.ca/wp-content/uploads/2015/09/ryerson-new-logo.png")))
+                                 
+                                 ;(h2 "Description") 
+                                 (table (tr
+                                         (td
+                                 (form ([action ,(embed/url login-handler)])
+                                       (div ((style "text-align:center"))
+                                       (label ((for "uname")) "Username") (br)
+                                       (input ((type "text")(placeholder "Enter Username")(name "uname"))) (br)
+                                       (label ((for "psw")) "Password") (br)
+                                       (input ((type "password")(placeholder "Enter Password")(name "psw"))) (br)
+                                       
+                                       (input ([class ,(button-style-class)][type "submit"] [value "Login"]))(br)
+                                       (label (input ((type "checkbox")(checked "checked")(name "remember"))" Remember me")))))
+                                         (td
+                                          
+                                          (h1 ((style "text-align:center"))"Ryerson Locker Management System")
+                                          (img ((style "max-width:70%;height:auto;display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;")(src "https://www.ryerson.ca/content/dam/cannabis/RyersonQuad-view-from-above2.jpg")))
+                                          ))))))))))
 
   (define (login-handler request) ;todo admin student split
     (render-admin-dashboard a-db request))
@@ -42,25 +61,30 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 "Welcome! Logged in as:")
-                 (p "Admin name")
-                 (h2 "Actions:")
-                            
+                 (h3 (string-append "Welcome back, " ,admin-name))
+
+                 (h4 "View")                 
                  (form ([action ,(embed/url view-lockers-handler)])
                        (input ([class ,(button-style-class)][type "submit"] [value "View Lockers"])))
                  (form ([action ,(embed/url view-students-handler)])
-                       (input ([class ,(button-style-class)][type "submit"] [value "View Students"])))                                 
+                       (input ([class ,(button-style-class)][type "submit"] [value "View Students"])))
+                 (p ((style "border-top: 3px dashed #bbb")))
+                 (h4 "Import")
                  (form ([action ,(embed/url upload-lockers-handler)])
                        (input ([class ,(button-style-class)][type "submit"] [value "Import Lockers"])))
-                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Lockers"))) (br) ;placeholders
                  (form ([action ,(embed/url upload-students-handler)])
                        (input ([class ,(button-style-class)][type "submit"] [value "Import Students"])))
+                 (p ((style "border-top: 3px dashed #bbb")))
+                 (h4 "Export")
+                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Lockers"))) (br) ;placeholders                 
                  (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Students"))) (br) ;placeholders
-                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Import Locks"))) (br) ;placeholders
-                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Assign Locks"))) (br) ;placeholders
+                 (p ((style "border-top: 3px dashed #bbb")))
+                 (h4 "Other")
+                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Lock sheet")))
+                 (br)
                  )
             (div ((class "w3-twothird w3-card-4"))
-                 (h2 "Select an option")
+                 (h3 "Select an option from the menu")
                             
                  )))))
 
@@ -85,17 +109,21 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 "Welcome! Logged in as:")
-                 (p "Admin name")                       
+                 (h3 (string-append "Welcome back, " ,admin-name))                      
                                  
-                 (form ([action ,(embed/url dashboard-handler)])
-                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
+                 
                  (form ([action ,(embed/url assign-locks-handler)])
                        (input ([class ,(button-style-class)][type "submit"][value "Assign locks to lockers"])))
-                 (button ([class ,(button-style-class)][form "delete"][type "submit"][name "id"])"Delete selected lockers!"))
+                 (button ([class ,(button-style-class)][form "delete"][type "submit"][name "id"])"Delete selected lockers!")
+                 (p ((style "border-top: 3px dashed #bbb")))
+                 (form ([action ,(embed/url dashboard-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
+                 (br))
 
             (div ((class "w3-twothird w3-card-4"))
-                 (h1 "Lockers:")
+                 (table ((style "width:100%"))(tr (td (h1 "Lockers:")) (td (img ((style "max-width:25%;height:auto;float:right")(src "https://static.vecteezy.com/system/resources/thumbnails/000/583/967/small/lockers.jpg"))))))
+                 
+                 
                  (form ([id "delete"][action ,(embed/url clear-db-handler)])
                        ,(render-lockers a-db embed/url)))))))
 
@@ -144,15 +172,17 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 "Welcome! Logged in as:")
-                 (p "Admin name")
+                 (h3 (string-append "Welcome back, " ,admin-name))
                                  
+                 
+                 (button ([class ,(button-style-class)][form "assign"][type "submit"][name "id"])"Mass assign lockers to selected students")
+                 (p ((style "border-top: 3px dashed #bbb")))
                  (form ([action ,(embed/url dashboard-handler)])
                        (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
-                 (button ([class ,(button-style-class)][form "assign"][type "submit"][name "id"])"Mass assign lockers to selected students"))
+                 (br))
 
             (div ((class "w3-twothird w3-card-4"))
-                 (h1 "Students:")
+                 (table ((style "width:100%"))(tr (td (h1 "Students:")) (td (img ((style "max-width:20%;height:auto;float:right")(src "https://uoftmeds.com/media/k2/items/cache/f7a0a54c92471ac4480e727e4ccf93df_XL.jpg"))))))
                  (form ([id "assign"][action ,(embed/url mass-assign-handler)])
                        ,(render-students a-db embed/url)))))))
 
@@ -193,6 +223,7 @@
 (define (confirm-mass-assign a-db request)
 
   ; For some reason, list of students always starts with "" - perhaps orphan form element?
+  ;also could be the title?
   (define students (list-tail (map cdr (request-bindings request)) 1))
   
   (define students-with-lockers
@@ -234,11 +265,11 @@
   
   (define (render-table students lockers)
     `(table ([class "w3-table w3-striped w3-bordered"])(th "Student Ids")(th "Locker #s")
-                        ,@(map render-row students lockers)))
+            ,@(map render-row students lockers)))
 
   (define (confirm-handler request)
-      (mass-assign a-db students-without-lockers lockers)
-      (mass-assign-successful-page a-db request))
+    (mass-assign a-db students-without-lockers lockers)
+    (mass-assign-successful-page a-db request))
 
   (define (cancel-handler request)
     (render-view-students a-db (redirect/get)))
@@ -279,34 +310,102 @@
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                  (h2 "Upload locker-lock csv file")
-                                (form 
-                                  ([action ,(embed/url import-csv-handler)]
-                                   [method "POST"]
-                                   [enctype "multipart/form-data"])
-                                  ,@(formlet-display file-upload-formlet)
-                                  (input ([type "submit"] [value "Upload"])))
+                 (form 
+                  ([action ,(embed/url import-csv-handler)]
+                   [method "POST"]
+                   [enctype "multipart/form-data"])
+                  ,@(formlet-display file-upload-formlet)
+                  (input ([type "submit"] [value "Upload"])))
 
-                                
-                 )
+                 (form ([action ,(embed/url view-lockers-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "View Lockers"])))
+                 (form ([action ,(embed/url dashboard-handler)])                                       
+                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"]))))
+                 
                             
             (div ((class "w3-twothird w3-card-4"))                 
                                 
                  )))))
 
+  (define (view-lockers-handler request)
+    (render-view-lockers a-db (redirect/get)))
+
+  (define (dashboard-handler request)
+    (render-admin-dashboard a-db (redirect/get)))
+
   (define (import-csv-handler request)
-    (define-values (fname fcontents)
-      (formlet-process file-upload-formlet request))
-    ;Saves a local copy of the upload file under name "!uploaded-filename"
-    (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
-    (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
-    (assign-locks! a-db (open-input-file (build-path (current-directory) save-name)))
-    (render-upload-successful-page a-db (redirect/get)))
+         
+    (render-confirm-assign-locks a-db request))
 
   (send/suspend/dispatch response-generator))
 
 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Confirm assign locks=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (render-confirm-assign-locks a-db request)
+  
+  (define-values (fname fcontents)
+    (formlet-process file-upload-formlet request))
+  ;Saves a local copy of the upload file under name "!uploaded-filename"
+  (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
+  (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
+
+  (define-values (locker-ids lock-ids) (extract-locker-lock-columns a-db (open-input-file (build-path (current-directory) save-name))))
+    
+  (define lockers-without-locks
+    (filter (λ (locker) (not (locker-has-lock? a-db locker))) locker-ids))
+  
+  ;TODO: delete last element which is title
+  (define lockers-with-locks
+    (filter (λ (locker) (locker-has-lock? a-db locker)) locker-ids))
+
+  (define assigned-locks
+    (map (λ (locker) (lock-id a-db locker)) lockers-with-locks))
+
+  (define new-locks
+    (map (λ (index) (list-ref lock-ids index))(map (λ (locker) (index-of locker-ids locker)) lockers-without-locks)))
+  (print new-locks)
+  
+  (define (response-generator embed/url)
+    (response/xexpr
+     (html-wrapper
+      `(div ((class "w3-row-padding"))
+            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                 (h2 "Confirm lock assignment")
+
+                 (form ([action ,(embed/url confirm-handler)])                       
+                       (input ([class ,(button-style-class)][type "submit"][value "Confirm"])))
+                 (form ([action ,(embed/url cancel-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "Cancel"]))))
+                            
+            (div ((class "w3-twothird w3-card-4"))
+
+                 
+                 ,(render-table lockers-without-locks new-locks)
+
+                 (h3 "Warning: following lockers already have locks")
+
+                 ,(render-table lockers-with-locks assigned-locks)
+                 
+                 )))))
 
 
+  (define (render-row locker lock)
+    `(tr (td ,locker) (td ,lock)))
+  
+  (define (render-table lockers locks)
+    `(table ([class "w3-table w3-striped w3-bordered"])(th "Locker IDs")(th "Lock IDs")
+            ,@(map render-row lockers locks)))
+
+  (define (confirm-handler request)
+    ;(assign-locks! a-db file)
+    (assign-locks! a-db (open-input-file (build-path (current-directory) save-name)))
+    ;(assign-locks-successful-page a-db request)
+    (render-view-lockers a-db request))
+  
+  (define (cancel-handler request)
+    (render-view-lockers a-db (redirect/get)))
+  
+  (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Locker details=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-locker-details a-db request)
@@ -315,11 +414,11 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 "Welcome! Logged in as:")
-                 (p "Admin name")
-                 (h2 "Actions:")
+                 (h3 (string-append "Welcome back, " ,admin-name))
+                 
                  (form ([action ,(embed/url view-lockers-handler)])
-                       (input ([class ,(button-style-class)][type "submit"][value "Back to Locker view"]))))
+                       (input ([class ,(button-style-class)][type "submit"][value "Back to Locker view"])))
+                 )
                             
             (div ((class "w3-twothird w3-card-4"))
                  (h1 "Locker Details:")
@@ -338,21 +437,33 @@
     (define student-id (number->string (locker-owner-id a-db id)))
     
     `(div ((class "w3-white"))
-          (h2 "Locker ID:")
-          (h3 ,id)
-          (h3 "Locker Location:") ,(locker-location a-db id)
-          (h3 "Lock #:") ,(number->string (lock-id a-db id))
-          (h3 "Locker owner:")
+          (table ([class "w3-table w3-striped w3-bordered"])
+                 (tr (td(h2 "Locker ID:"))(td ((class "w3-right-align")) (h3 ,id)))
+                 (tr (td)(td))
+                 (tr (td (h3 "Locker Location:"))(td ((class "w3-right-align")) ,(locker-location a-db id)))
+                 (tr (td (h3 "Lock #:"))(td ((class "w3-right-align"))
+                                            ,(if (locker-has-lock? a-db id)                             
+                                                 `(div ,(number->string (lock-id a-db id)))
+                                                 `(div "No Lock Assigned!"))))
+                 (tr (td (h3 "Locker owner:"))(td ((class "w3-right-align"))
+                                                  ,(if (locker-owned? a-db id)
+                                                       `(div ,(locker-owner-name a-db id)                                                           
+                                                             (form ([action ,(embed/url student-details-handler)])
+                                                                   (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
+                                                                   (input ([class ,(button-style-class)][type "submit"][value "Student Details"]))))
+                                                       `(div
+                                                         "None"
+                                                         (form ([action ,(embed/url add-student-locker-handler)])
+                                                               (label ((for "student-id")) "Student ID:")
+                                                               (input ([type "text"][id "student-id"][name "student-id"]))
+                                                               (input ([type "hidden"][id "locker-id"][name "locker-id"][value ,id]))
+                                                               (input ([class ,(button-style-class)][type "submit"][value "Assign"])))))))
+                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align")) ""))                                                                               
+                 )))
 
-          
-          (p ,(locker-owner-name a-db id))
-          (p ,student-id)
-          (form ([action ,(embed/url student-details-handler)])
-                (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
-                (input ([class ,(button-style-class)][type "submit"][value "Student Details"])))
-                   
-          (h3 "Notes:")))
-
+  (define (add-student-locker-handler request)
+    (confirm-add-student-locker a-db request))
+  
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student details=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -364,9 +475,8 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 "Welcome! Logged in as:")
-                 (p "Admin name")
-                 (h2 "Actions:")
+                 (h3 (string-append "Welcome back, " ,admin-name))
+
                  (form ([action ,(embed/url view-students-handler)])
                        (input ([class ,(button-style-class)][type "submit"][value "Back to Student view"]))))
                             
@@ -389,26 +499,28 @@
   
   (define (display-student-info id embed/url)            
     `(div ((class "w3-white"))
-          (h2 "Student ID:")
-          (h3 ,id)
-          (h3 "Student Name:") ,(student-name a-db id)
-
-          ,(if (student-owns-locker? a-db id)
-               `(div
-                 (h3 "Locker:")
-                 ,(number->string (students-locker-id a-db id))
-                 (form ([action ,(embed/url locker-details-handler)])
-                       (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,(number->string (students-locker-id a-db id))]))
-                       (input ([class ,(button-style-class)][type "submit"][value "Locker details"]))))
-               `(div
-                 (h3 "No locker assigned")
-                 (form ([action ,(embed/url add-student-locker-handler)])
-                       (input ([type "text"][id "locker-id"][name "locker-id"]))
-                       (input ([type "hidden"][id "student-id"][name "student-id"][value ,id]))
-                       (input ([class ,(button-style-class)][type "submit"][value "Add locker"])))))
+          (table ([class "w3-table w3-striped w3-bordered"])
+                 (tr (td  (h2 "Student ID:"))(td ((class "w3-right-align")) (h3 ,id)))  
+                 (tr (td (h3 "Student Name:"))(td ((class "w3-right-align")) ,(student-name a-db id)))
+                 (tr (td  (h3 "Locker:"))(td ((class "w3-right-align"))
+                                             ,(if (student-owns-locker? a-db id)
+                                                  `(div                 
+                                                    ,(number->string (students-locker-id a-db id))
+                                                    (form ([action ,(embed/url locker-details-handler)])
+                                                          (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,(number->string (students-locker-id a-db id))]))
+                                                          (input ([class ,(button-style-class)][type "submit"][value "Locker details"]))))
+                                                  `(div
+                                                    "No locker assigned"
+                                                    (form ([action ,(embed/url add-student-locker-handler)])
+                                                          (input ([type "text"][id "locker-id"][name "locker-id"]))
+                                                          (input ([type "hidden"][id "student-id"][name "student-id"][value ,id]))
+                                                          (input ([class ,(button-style-class)][type "submit"][value "Add locker"])))))))
+          
+                 (tr (td(h3 "Notes:"))(td ((class "w3-right-align")) ""))
+          
           
                              
-          (h3 "Notes:")))
+                 )))
 
   (send/suspend/dispatch response-generator))
 
@@ -423,14 +535,20 @@
      (html-wrapper
       `(div ((class "w3-row-padding"))
             (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                 (h2 "Confirm new locker assignment?")
-                 (p ,locker-id) ;also make it display student name. ;)                  
+                 (h2 "Confirm locker assignment")                                  
                  (form ([action ,(embed/url confirm-handler)])
                        (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
                        (input ([class ,(button-style-class)][type "submit"][value "Confirm"])))
                  (form ([action ,(embed/url cancel-handler)])
                        (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
-                       (input ([class ,(button-style-class)][type "submit"][value "Cancel"]))))))))
+                       (input ([class ,(button-style-class)][type "submit"][value "Cancel"]))))
+            (div ((class "w3-twothird w3-card-4"))
+                 
+                 (table ([class "w3-table w3-striped w3-bordered"])
+                        (th (h2 "Student Name"))(th (h2 "Locker ID"))
+                        (tr (td ,(student-name a-db student-id))(td ,locker-id)))                
+                                
+                 )))))
  
   (define (confirm-handler request)   
     (insert-student-locker a-db student-id locker-id "until tuesday")
@@ -445,27 +563,23 @@
 (define (render-upload-lockers a-db request)
   (define (response-generator embed/url)
     (response/xexpr
-     `(html (head (title "Locker Management System")
-                  ,@(style-link))
-            (body ((class "w3-container"))
-                  (div ((class "w3-content w3-margin-top"))
-                       (div ((class "w3-row-padding"))
-                            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                                 (h2 "Welcome! Logged in as:")
-                                 (p "Admin name")
-                                 (h2 "Actions:")
-                                 (h3 "Upload locker CSV file:")
-                                 (form 
-                                  ([action ,(embed/url import-csv-handler)]
-                                   [method "POST"]
-                                   [enctype "multipart/form-data"])
-                                  ,@(formlet-display file-upload-formlet)
-                                  (input ([type "submit"] [value "Upload"])))
+     (html-wrapper
+      `(div ((class "w3-row-padding"))
+            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                 (h3 (string-append "Welcome back, " ,admin-name))
+
+                 (h3 "Upload locker CSV file:")
+                 (form 
+                  ([action ,(embed/url import-csv-handler)]
+                   [method "POST"]
+                   [enctype "multipart/form-data"])
+                  ,@(formlet-display file-upload-formlet)
+                  (input ([type "submit"] [value "Upload"])))
                                  
-                                 (form ([action ,(embed/url dashboard-handler)])                                       
-                                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
-                                 (form ([action ,(embed/url view-lockers-handler)])
-                                       (input ([class ,(button-style-class)][type "submit"][value "View Lockers"]))))))))))
+                 (form ([action ,(embed/url dashboard-handler)])                                       
+                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
+                 (form ([action ,(embed/url view-lockers-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "View Lockers"]))))))))
 
 
   (define (view-lockers-handler request)
@@ -477,7 +591,7 @@
   (define (import-csv-handler request)
     (define-values (fname fcontents)
       (formlet-process file-upload-formlet request))
-    ;Saves a local copy of the upload file under name "!uploaded-filename"
+    ;Saves a local copy of the upload file under name "!uploaded-filename", in order to read
     (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
     (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
     (db-import-locker-csv! a-db (open-input-file (build-path (current-directory) save-name)))
@@ -490,27 +604,23 @@
 (define (render-upload-students a-db request)
   (define (response-generator embed/url)
     (response/xexpr
-     `(html (head (title "Locker Management System")
-                  ,@(style-link))
-            (body ((class "w3-container"))
-                  (div ((class "w3-content w3-margin-top"))
-                       (div ((class "w3-row-padding"))
-                            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                                 (h2 "Welcome! Logged in as:")
-                                 (p "Admin name")
-                                 (h2 "Actions:")
-                                 (h3 "Upload student CSV file:")
-                                 (form 
-                                  ([action ,(embed/url import-csv-handler)]
-                                   [method "POST"]
-                                   [enctype "multipart/form-data"])
-                                  ,@(formlet-display file-upload-formlet)
-                                  (input ([type "submit"] [value "Upload"])))
+     (html-wrapper
+      `(div ((class "w3-row-padding"))
+            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                 (h3 (string-append "Welcome back, " ,admin-name))
+
+                 (h3 "Upload student CSV file:")
+                 (form 
+                  ([action ,(embed/url import-csv-handler)]
+                   [method "POST"]
+                   [enctype "multipart/form-data"])
+                  ,@(formlet-display file-upload-formlet)
+                  (input ([type "submit"] [value "Upload"])))
                                  
-                                 (form ([action ,(embed/url dashboard-handler)])
-                                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
-                                 (form ([action ,(embed/url view-students-handler)])
-                                       (input ([class ,(button-style-class)][type "submit"][value "View students"]))))))))))
+                 (form ([action ,(embed/url dashboard-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))
+                 (form ([action ,(embed/url view-students-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "View students"]))))))))
 
 
   (define (view-students-handler request)
@@ -536,12 +646,16 @@
 (define (render-upload-successful-page a-db request)
   (define (response-generator embed/url)
     (response/xexpr
-     `(html (head (title "Locker Management System")
-                  ,@(style-link))
-            (body
-             (h2 ((class "w3-text-green")) "File upload successful!")             
-             (form ([action ,(embed/url dashboard-handler)])
-                   (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"])))))))
+     (html-wrapper
+      `(div ((class "w3-row-padding"))
+            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                 (h2 ((class "w3-text-green")) "File upload successful!")             
+                 (form ([action ,(embed/url dashboard-handler)])
+                       (input ([class ,(button-style-class)][type "submit"][value "Back to Dashboard"]))))
+           
+            (div ((class "w3-twothird w3-card-4"))                                                                  
+                 )))))
+           
 
   (define (dashboard-handler request)
     (render-admin-dashboard a-db (redirect/get)))

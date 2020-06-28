@@ -2,9 +2,7 @@
 (require db)
 (require racket/list)
 (require csv-reading)
-
-
-(define *x* 1)
+(require web-server/servlet)
 
 ;init db returns db
 (define (init-db! home)
@@ -12,9 +10,9 @@
   (unless (table-exists? db "lockers")
     (query-exec db
                 (string-append
-                 "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lock_id INTEGER)"))
+                 "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lock_id INTEGER, is_broken BIT)"))
     
-    (insert-locker db 1 "near here (sample locker)" 0))
+    (insert-locker db 1 "near here (sample locker)" 0 0))
   (unless (table-exists? db "students")
     (query-exec db
                 (string-append
@@ -41,7 +39,7 @@
     (if (and
          (string->number locker-num) ;check if unique      
          (string? locker-location))
-        (insert-locker a-db locker-num locker-location 0)
+        (insert-locker a-db locker-num locker-location 0 0)
         ;(list locker-num locker-location)
         "incorrect format (not unique or not int, str)"))
   (csv-map extract-locker-data-from-row file))
@@ -172,6 +170,27 @@
         #t
         #f)))
 
+(define (locker-broken? a-db locker-id)
+  (define (exn-handler exn)
+    #f)
+  (with-handlers ([exn? exn-handler])
+    (if (not (equal? (query-value
+         a-db
+         "SELECT is_broken FROM lockers WHERE id = ?"
+         locker-id) 0)) #t #f)))
+
+(define (set-locker-broken! a-db locker-id)
+  (query-exec
+   a-db
+   "UPDATE lockers SET is_broken = 1 WHERE id = ?"
+   locker-id))
+
+(define (set-locker-fixed! a-db locker-id)
+  (query-exec
+   a-db
+   "UPDATE lockers SET is_broken = 0 WHERE id = ?"
+   locker-id))
+
 (define (locker-owner-name a-db id) ;locker-id -> student-name
   (define (exn-handler exn)
     "No owner")
@@ -246,11 +265,11 @@
 (define (mass-assign a-db students lockers)
   (map (λ (student locker) (insert-student-locker a-db student locker "mass-assigned")) students lockers))
 
-(define (insert-locker a-db id location lock-id)
+(define (insert-locker a-db id location lock-id is-broken)
   (query-exec
    a-db
-   "INSERT INTO lockers (id, location, lock_id) VALUES (?, ?, ?)"
-   id location lock-id))
+   "INSERT INTO lockers (id, location, lock_id, is_broken) VALUES (?, ?, ?, ?)"
+   id location lock-id is-broken))
 
 (define (insert-student-locker a-db student-id locker-id valid-until)
   (query-exec

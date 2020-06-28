@@ -54,24 +54,27 @@
     (define student-program (list-ref a-row 3))
     (define student-email (list-ref a-row 4))
     (if (and
-         (string->number student-id) ;check if unique      
+         (string->number student-id) ;check if unique ; Actually unique check is in the CREATE TABLE statement, just add exception catcher         
          (string? student-firstname)
          (string? student-lastname)
          (string? student-program)
          (string? student-email))
         (insert-student a-db student-id student-firstname student-lastname student-program student-email)
-        "incorrect format (not unique or not int, str)"))
+        "incorrect format (not unique or not int, str)")) ; this dont work
   (csv-map extract-student-data-from-row file))
 
 (define (extract-locker-lock-columns a-db file) ;file -> (list lockers locks)
   (define lockers (list))
   (define locks (list))
   (define (extract-lock-row a-row)
-    (set! lockers (append (list (list-ref a-row 1)) lockers))
-    (set! locks (append (list (list-ref a-row 2)) locks))
-)
-  (csv-map extract-lock-row file)
-  (values lockers locks))
+  
+    (cond [(and (string->number (list-ref a-row 1)) (string->number (list-ref a-row 2)))
+        (set! lockers (append (list (list-ref a-row 1)) lockers))
+        (set! locks (append (list (list-ref a-row 2)) locks))]))
+        
+
+(csv-map extract-lock-row file)
+(values lockers locks))
 
 (define (assign-locks! a-db file)    
   (define (extract-lock-row a-row)
@@ -95,6 +98,12 @@
        (string? locker-location))
       (insert-locker a-db (string->number locker-num) locker-location 0)
       "incorrect format (not unique or not int, str)"))
+
+(define (filter-students a-db [firstname "%"][lastname "%"][program "%"][email "%"])
+  (query-list
+   a-db
+   "SELECT id FROM students
+    WHERE firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" firstname lastname program email))
 
 ;Lists all IDs
 (define (all-students a-db)
@@ -223,7 +232,7 @@
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
    a-db
-   "INSERT INTO students (id, firstname, lastname, program, email) VALUES (?, ?, ?, ? ,?)"
+   "INSERT INTO students (id, firstname, lastname, program, email) VALUES (?, ?, ?, ? ,?)"  
    id firstname lastname program email))
 
 ;students - listof student-id

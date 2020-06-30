@@ -67,12 +67,12 @@
   (define (extract-lock-row a-row)
   
     (cond [(and (string->number (list-ref a-row 1)) (string->number (list-ref a-row 2)))
-        (set! lockers (append (list (list-ref a-row 1)) lockers))
-        (set! locks (append (list (list-ref a-row 2)) locks))]))
+           (set! lockers (append (list (list-ref a-row 1)) lockers))
+           (set! locks (append (list (list-ref a-row 2)) locks))]))
         
 
-(csv-map extract-lock-row file)
-(values lockers locks))
+  (csv-map extract-lock-row file)
+  (values lockers locks))
 
 (define (assign-locks! a-db file)    
   (define (extract-lock-row a-row)
@@ -102,6 +102,14 @@
    a-db
    "SELECT id FROM students
     WHERE firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" firstname lastname program email))
+
+(define (filter-lockers a-db locker-id location owned broken)
+  (filter (λ (locker) (or (string=? broken "all")(string=? broken (if(locker-broken? a-db locker)"yes""no"))))
+  (filter (λ (locker) (or (string=? owned "all")(string=? owned (if(locker-owned? a-db locker)"yes""no"))))
+          (query-list
+           a-db
+           "SELECT id FROM lockers
+           WHERE id LIKE ? AND location LIKE ?" locker-id location))))
 
 ;Lists all IDs
 (define (all-students a-db)
@@ -175,9 +183,9 @@
     #f)
   (with-handlers ([exn? exn-handler])
     (if (not (equal? (query-value
-         a-db
-         "SELECT is_broken FROM lockers WHERE id = ?"
-         locker-id) 0)) #t #f)))
+                      a-db
+                      "SELECT is_broken FROM lockers WHERE id = ?"
+                      locker-id) 0)) #t #f)))
 
 (define (set-locker-broken! a-db locker-id)
   (query-exec

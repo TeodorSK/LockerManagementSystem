@@ -68,9 +68,7 @@
   
     (cond [(and (string->number (list-ref a-row 1)) (string->number (list-ref a-row 2)))
            (set! lockers (append (list (list-ref a-row 1)) lockers))
-           (set! locks (append (list (list-ref a-row 2)) locks))]))
-        
-
+           (set! locks (append (list (list-ref a-row 2)) locks))]))       
   (csv-map extract-lock-row file)
   (values lockers locks))
 
@@ -97,11 +95,11 @@
       (insert-locker a-db (string->number locker-num) locker-location 0)
       "incorrect format (not unique or not int, str)"))
 
-(define (filter-students a-db [firstname "%"][lastname "%"][program "%"][email "%"])
+(define (filter-students a-db [student-id "%"][firstname "%"][lastname "%"][program "%"][email "%"])
   (query-list
    a-db
    "SELECT id FROM students
-    WHERE firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" firstname lastname program email))
+    WHERE id LIKE ? AND firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" student-id firstname lastname program email))
 
 (define (filter-lockers a-db locker-id location owned broken)
   (filter (λ (locker) (or (string=? broken "all")(string=? broken (if(locker-broken? a-db locker)"yes""no"))))
@@ -109,7 +107,7 @@
           (query-list
            a-db
            "SELECT id FROM lockers
-           WHERE id LIKE ? AND location LIKE ?" locker-id location))))
+           WHERE id LIKE ? AND location LIKE ?" locker-id (string-append "%" location "%")))))
 
 ;Lists all IDs
 (define (all-students a-db)
@@ -117,6 +115,9 @@
 
 (define (all-lockers a-db)
   (query-list a-db "SELECT id FROM lockers"))
+
+(define (all-programs a-db)
+  (query-list a-db "SELECT DISTINCT program FROM students"))
 
 (define (student-firstname a-db id)
   (query-value

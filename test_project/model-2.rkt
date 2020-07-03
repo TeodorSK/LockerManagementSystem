@@ -58,7 +58,7 @@
          (string? student-program)
          (string? student-email))
         (insert-student a-db student-id student-firstname student-lastname student-program student-email)
-        "incorrect format (not unique or not int, str)")) ; this dont work
+        "incorrect format (not unique or not int, str)"))
   (csv-map extract-student-data-from-row file))
 
 (define (extract-locker-lock-columns a-db file) ;file -> (list lockers locks)
@@ -95,15 +95,15 @@
       (insert-locker a-db (string->number locker-num) locker-location 0)
       "incorrect format (not unique or not int, str)"))
 
-(define (filter-students a-db [student-id "%"][firstname "%"][lastname "%"][program "%"][email "%"])
+(define (filter-students a-db [student-id "%"][firstname "%"][lastname "%"][program "%"][email "%"]) ;default values already set in View Students
   (query-list
    a-db
    "SELECT id FROM students
     WHERE id LIKE ? AND firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" student-id firstname lastname program email))
 
-(define (filter-lockers a-db locker-id location owned broken)
+(define (filter-lockers a-db locker-id location assigned broken)
   (filter (λ (locker) (or (string=? broken "all")(string=? broken (if(locker-broken? a-db locker)"yes""no"))))
-  (filter (λ (locker) (or (string=? owned "all")(string=? owned (if(locker-owned? a-db locker)"yes""no"))))
+  (filter (λ (locker) (or (string=? assigned "all")(string=? assigned (if(locker-assigned? a-db locker)"yes""no"))))
           (query-list
            a-db
            "SELECT id FROM lockers
@@ -233,7 +233,7 @@
 
 ;returns #t/#f
 ;TODO: does it??? clean it up
-(define (student-owns-locker? a-db id)
+(define (student-assigned-locker? a-db id)
   (define (exn-handler exn)
     #f) ;if query null, return #f
   (with-handlers ([exn? exn-handler])
@@ -245,7 +245,7 @@
         #f
         )))
 
-(define (locker-owned? a-db id)
+(define (locker-assigned? a-db id)
   (define (exn-handler exn)
     #f)
   (with-handlers ([exn? exn-handler])

@@ -172,12 +172,12 @@
   (define (exn-handler exn)
     #f)
   (with-handlers ([exn? exn-handler])
-    (if (query-value
+    (= 1 (query-value
          a-db
          "SELECT 1 FROM lockers WHERE id = ? AND lock_id <> '' AND lock_id <> 0"
-         locker-id)
-        #t
-        #f)))
+         locker-id))))
+
+
 
 (define (locker-broken? a-db locker-id)
   (define (exn-handler exn)

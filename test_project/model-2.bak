@@ -95,19 +95,23 @@
       (insert-locker a-db (string->number locker-num) locker-location 0)
       "incorrect format (not unique or not int, str)"))
 
-(define (filter-students a-db [student-id "%"][firstname "%"][lastname "%"][program "%"][email "%"]) ;default values already set in View Students
+(define (filter-students a-db student-id firstname lastname program email has-locker awaiting)
+  (filter (λ (student) (or (and (student-assigned-locker? a-db student)(string=? has-locker "has-locker"))
+                         (and (not (student-assigned-locker? a-db student))(string=? awaiting "awaiting"))))
   (query-list
    a-db
    "SELECT id FROM students
-    WHERE id LIKE ? AND firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" student-id firstname lastname program email))
+    WHERE id LIKE ? AND firstname LIKE ? AND lastname LIKE ? AND program LIKE ? AND email LIKE ?" student-id firstname lastname program email)))
 
-(define (filter-lockers a-db locker-id location assigned broken)
-  (filter (λ (locker) (or (string=? broken "all")(string=? broken (if(locker-broken? a-db locker)"yes""no"))))
-  (filter (λ (locker) (or (string=? assigned "all")(string=? assigned (if(locker-assigned? a-db locker)"yes""no"))))
+(define (filter-lockers a-db locker-id location assigned unassigned broken fixed)
+ (filter (λ (locker) (and (or (and (locker-assigned? a-db locker)(string=? assigned "assigned"))
+                         (and (not (locker-assigned? a-db locker))(string=? unassigned "unassigned")))
+                          (or (and (locker-broken? a-db locker)(string=? broken "broken"))
+                         (and (not (locker-broken? a-db locker))(string=? fixed "fixed")))))                                      
           (query-list
            a-db
            "SELECT id FROM lockers
-           WHERE id LIKE ? AND location LIKE ?" locker-id (string-append "%" location "%")))))
+           WHERE id LIKE ? AND location LIKE ?" locker-id (string-append "%" location "%"))))
 
 ;Lists all IDs
 (define (all-students a-db)
@@ -168,7 +172,7 @@
      "SELECT lock_id FROM lockers WHERE id = ?"
      id)))
   
-(define (locker-has-lock? a-db locker-id)
+(define (locker-has-lock? a-db locker-id) ;check if this works
   (define (exn-handler exn)
     #f)
   (with-handlers ([exn? exn-handler])
@@ -232,7 +236,6 @@
     id)))
 
 ;returns #t/#f
-;TODO: does it??? clean it up
 (define (student-assigned-locker? a-db id)
   (define (exn-handler exn)
     #f) ;if query null, return #f

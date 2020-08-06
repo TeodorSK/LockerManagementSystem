@@ -154,9 +154,9 @@
    id))
 
 (define (locker-notes a-db id)
-  (query-list
+  (query-value
    a-db
-   "SELECT note FROM notes_lockers WHERE locker_id = ?"
+   "SELECT notes FROM notes_lockers WHERE locker_id = ?"
    id))
 
 (define (locker-owner-id a-db id)

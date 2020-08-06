@@ -5,16 +5,22 @@
 (require xml)
 (require string-util)
 
-;(require "model.rkt")
+(require "model.rkt")
 (provide (all-defined-out))
 
-(define (render-student-dashboard request)
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (render-student-dashboard request [a-db (init-db! (build-path (current-directory) "database16.db"))])
+  ;TODO: instead of passing entire DB, pass only this student's record
+  ;How do you do updates then?
+  ;Is there a listener process that can run from server
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
-           (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                ;(a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, Student"))                
+           (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
+                (h3 (string-append "Welcome back, Student"))
+
+                ,(nav-button (embed/url my-locker-handler) "My Locker")
+                ,(nav-button (embed/url my-profile-handler) "My Profile")                
                 )
            
            (div ((class "w3-twothird w3-card-4"))
@@ -22,10 +28,109 @@
                             
                 ))))
 
+  ;=-=-Handlers-=-=
+  (define (my-locker-handler request)
+    (render-my-locker a-db request))
+
+  (define (my-profile-handler request)
+    (render-my-profile a-db request))
+
   (send/suspend/dispatch response-generator))
 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-My Locker=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (render-my-locker a-db request)
+  
+  (define id (number->string 1093))
+  
+  (define (response-generator embed/url)
+    (html-wrap
+     `(div ((class "w3-row-padding"))
+           (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
+                (h3 (string-append "Welcome back, Student"))
 
+                ,(nav-button (embed/url my-locker-handler) "My Locker")
+                ,(nav-button (embed/url my-profile-handler) "My Profile")                
+                )
+           
+           (div ((class "w3-twothird w3-card-4"))
+                (h1 "My Locker Details:")
 
+                ,(display-locker-info id embed/url)
+                                
+                ))))
+
+  (define (display-locker-info id embed/url)    
+    
+    `(div ((class "w3-white"))
+          (table ([class "w3-table w3-striped w3-bordered"])
+                 (tr (td (h3 "Locker ID:"))(td ((class "w3-right-align")) (p ,id)))                 
+                 (tr (td (h3 "Locker Location:"))(td ((class "w3-right-align")) ,(locker-location a-db id)))
+                 (tr (td (h3 "Lock #:"))
+;                     (td ((class "w3-right-align"))
+;                                            ,(if (locker-has-lock? a-db id)                             
+;                                                 `(div ,(number->string (lock-id a-db id)))
+;                                                 `(div "No Lock Assigned!"))))                 
+                 (tr (td (h3 "Locker status: "))
+                     (td ((class "w3-right-align")) (form ([action ,(embed/url report-issue-handler)][method "PUT"])
+                                                                                          (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
+                                                                                          (input ([class ,(button-style-class)][type "submit"][value "Report issue"])))))
+                                                                                           
+                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align")) ""))
+                 ))))
+
+  ;=-=-Handlers-=-=
+  (define (report-issue-handler request)    
+    (render-my-locker a-db request))
+  
+  (define (my-locker-handler request)
+    (render-my-locker a-db request))
+
+  (define (my-profile-handler request)
+    (render-my-profile a-db request))
+
+  (send/suspend/dispatch response-generator))
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-My Profile=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (render-my-profile a-db request)
+  
+  (define student-details-id (number->string 3974133))
+  
+  (define (response-generator embed/url)
+    (html-wrap
+     `(div ((class "w3-row-padding"))
+           (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
+                (h3 (string-append "Welcome back, Student"))
+
+                ,(nav-button (embed/url my-locker-handler) "My Locker")
+                ,(nav-button (embed/url my-profile-handler) "My Profile")                
+                )
+           
+           (div ((class "w3-twothird w3-card-4"))
+                (h1 "My Profile Details:")
+
+                ,(display-student-info student-details-id embed/url)
+                                
+                ))))
+
+  (define (display-student-info id embed/url)            
+    `(div ((class "w3-white"))
+          (table ([class "w3-table w3-striped w3-bordered"])
+                 (tr (td  (h2 "Student ID:"))(td ((class "w3-right-align")) (h3 ,id)))  
+                 (tr (td (h3 "Student Name:"))(td ((class "w3-right-align")) ,(student-name a-db id)))                 
+                 (tr (td(h3 "Email:"))(td ((class "w3-right-align")) ,(student-email a-db id)))
+                 (tr (td(h3 "Notes:"))(td ((class "w3-right-align")) "")))
+          (p "Any questions/concerns? Email admin@admin.ca")))
+
+  ;=-=-Handlers-=-=
+  (define (my-locker-handler request)
+    (render-my-locker a-db request))
+
+  (define (my-profile-handler request)
+    (render-my-profile a-db request))
+
+  (send/suspend/dispatch response-generator))
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Other=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (define (html-wrap content)
   (response/xexpr
@@ -34,6 +139,14 @@
           (body ((class "w3-container"))
                 (div ((class "w3-content w3-margin-top"))                       
                      ,content)))))
+
+(define (nav-button handler text #:hidden-fields [hidden-fields ""] #:post [post #f])
+  `(form ([action ,handler][method ,(if post "post" "get")])
+         (input ([class ,(button-style-class)][type "submit"][value ,text]))
+         ,hidden-fields))
+
+(define (button-style-class)
+  "w3-block w3-btn w3-ripple w3-blue w3-round-large")
 
 (define (style-link)
   `((link ((rel "stylesheet")

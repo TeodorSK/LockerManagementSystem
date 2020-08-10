@@ -33,6 +33,6 @@ Alternatively, open webapp.rkt using DrRacket and press Run (Ctrl-R)
 The app will run on URL localhost:8000/servlets/webapp.rkt
 
 ## Login details
-For student dashboard uname: `student`
-For admin dashboard uname: `admin`
+For student dashboard uname: `student` 
+For admin dashboard uname: `admin` 
 No password required

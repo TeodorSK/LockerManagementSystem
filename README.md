@@ -8,8 +8,8 @@ https://download.racket-lang.org/
 ## Installing dependencies
 The following collections need to be installed using the following commands
 
-raco pkg install string-util
-raco pkg install csv-reading
+> raco pkg install string-util
+> raco pkg install csv-reading
 
 Alternatively, these can be installed from the Racket IDE, DrRacket, which comes with the installation
 

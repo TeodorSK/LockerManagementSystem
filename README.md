@@ -20,6 +20,8 @@ To run the webapp from a local machine, run
 
 racket -t webapp.rkt
 
+Alternatively, open webapp.rkt using DrRacket and press Run (Ctrl-R)
+
 The app will run on URL localhost:8000/servlets/webapp.rkt
 
 ## Login details

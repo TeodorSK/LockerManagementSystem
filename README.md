@@ -8,8 +8,10 @@ https://download.racket-lang.org/
 ## Installing dependencies
 The following collections need to be installed using the following commands
 
-  `raco pkg install string-util`
-  `raco pkg install csv-reading`
+```
+  raco pkg install string-util
+  raco pkg install csv-reading
+```
 
 Alternatively, these can be installed from the Racket IDE, DrRacket, which comes with the installation
 
@@ -22,10 +24,10 @@ To download the source code, run the following command
 
 ## Running
 To run the webapp, run the following commands
-  
-  `cd LockerManagementSystem/lms1.0`
-  `racket -t webapp.rkt`
-
+```
+  cd LockerManagementSystem/lms1.0
+  racket -t webapp.rkt
+```
 Alternatively, open webapp.rkt using DrRacket and press Run (Ctrl-R)
 
 The app will run on URL localhost:8000/servlets/webapp.rkt

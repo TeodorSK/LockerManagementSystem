@@ -1,14 +1,28 @@
 # Locker Management System
 
-This is a proof-of-concept of a blog-type web application written in Racket. To be modified into locker management system.
+## Installing Racket
+In order to run webapp.rkt from command line, Racket must be installed from
 
+https://download.racket-lang.org/
 
-# Installing
-Clone the repository
+## Installing dependencies
+The following collections need to be installed using the following commands
 
-# Running the application
-Run DrRacket
-From DrRacket, File/Open/blog.rkt
-Run blog.rkt
+raco pkg install string-util
+raco pkg install csv-reading
 
-The app will open a web page on your browser on localhost:8080
+Alternatively, these can be installed from the Racket IDE, DrRacket, which comes with the installation
+
+If offered to install additional dependencies, follow the given instructions to install them as well
+
+## Running
+To run the webapp from a local machine, run
+
+racket -t webapp.rkt
+
+The app will run on URL localhost:8000/servlets/webapp.rkt
+
+## Login details
+For student dashboard uname: student
+For admin dashboard uname: admin
+No password required

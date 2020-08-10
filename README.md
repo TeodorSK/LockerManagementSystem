@@ -20,7 +20,7 @@ If offered to install additional dependencies, follow the given instructions to 
 ## Downloading code
 To download the source code, run the following command
 
- `git clone https://github.com/TeodorSK/LockerManagementSystem`
+  `git clone https://github.com/TeodorSK/LockerManagementSystem`
 
 ## Running
 To run the webapp, run the following commands

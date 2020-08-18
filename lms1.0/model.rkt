@@ -298,8 +298,7 @@
 (define (students-locker-id a-db id) ;student-id -> locker-id
   (query-value
    a-db
-   "SELECT id FROM lockers WHERE id =
- (SELECT locker_id FROM student_locker WHERE student_id = ?)"
+   "SELECT id FROM lockers WHERE id = (SELECT locker_id FROM student_locker WHERE student_id = ?)"
    id))
 
 (define (clear-locker! a-db id)

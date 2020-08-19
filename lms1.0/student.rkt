@@ -4,12 +4,15 @@
 (require web-server/formlets)
 (require xml)
 (require string-util)
+(require racket/runtime-path)
+
 
 (require "model.rkt")
 (provide (all-defined-out))
 
+(define-runtime-path files-path "htdocs\\")
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-student-dashboard request [a-db (init-db! (build-path (current-directory) "database16.db"))])
+(define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
   ;TODO: instead of passing entire DB, pass only this student's record
   ;How do you do updates then?
   ;Is there a listener process that can run from server

@@ -461,7 +461,7 @@
     (formlet-process file-upload-formlet request))
   ;Saves a local copy of the upload file under name "!uploaded-filename"
   (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
-  (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
+  (display-to-file fcontents (build-path files-path save-name) #:exists 'replace);Limit the number of saved local files?
 
   (define-values (locker-ids lock-ids) (extract-locker-lock-columns a-db (open-input-file (build-path files-path save-name))))
     
@@ -569,13 +569,19 @@
                                                                                           ,(if (locker-broken? a-db id)
                                                                                                `(p "Broken" (input ([class ,(button-style-class)][type "submit"][value "Set fixed"])))
                                                                                                `(p "Fixed" (input ([class ,(button-style-class)][type "submit"][value "Set broken"]))))))) 
-                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align")) ,@(map format-notes (locker-notes a-db id))))
+                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
+                                            ,@(map format-notes (locker-notes a-db id))
+                                            (form ([action ,(embed/url add-note-handler)])
+                                                  (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
+                                                  (input ([type "text"][id "new-note"][name "new-note"]))
+                                                  (input ([class ,(button-style-class)][type "submit"][value "Add new note"])))))
                  )))
 
   (define (format-notes note)
-    `(div ([class "w3-border w3-padding w3-blue-grey"])
+    `(div ([class "w3-border w3-padding w3-pale-yellow"])
           (div ([class "note-user"]) "Admin:")
-          (div ([class "note-content"]) ,note)))
+          (div ([class "note-content"]) ,note)
+          (div ([class "w3-button w3-xxlarge w3-padding-small w3-text-red"]) "🗑"))) ;TODO: make into button - implement add/rem
 
   ;=-=-Handlers-=-=
   (define (dashboard-handler request)
@@ -593,6 +599,12 @@
 
   (define (set-fixed-handler request)
     (set-locker-fixed! a-db id)
+    (render-locker-details a-db request))
+
+  (define (add-note-handler request)
+    (render-locker-details a-db request))
+
+  (define (remove-note-handler request)
     (render-locker-details a-db request))
   
   (define (add-student-locker-handler request)

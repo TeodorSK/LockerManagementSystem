@@ -30,6 +30,15 @@
         	FOREIGN KEY(student_id) REFERENCES students(id),
         	FOREIGN KEY(locker_id) REFERENCES lockers(id))"))
     (insert-student-locker db 1 1 "forever"))
+  (unless (table-exists? db "notes_lockers")
+    (query-exec db
+                (string-append
+                 "CREATE TABLE notes_lockers (
+        	id	        INTEGER,
+        	locker_id	INTEGER,
+        	note	        TEXT,
+	        FOREIGN KEY (locker_id) REFERENCES lockers(id),
+         	PRIMARY KEY (id))")))
   db)
 
 (define (db-import-locker-csv! a-db file)

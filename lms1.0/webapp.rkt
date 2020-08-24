@@ -18,16 +18,13 @@
 
 (define (start request)
   (render-login-page
-   (init-db!
-    (build-path files-path
-                "database.db"))
+;   (init-db!
+;    (build-path files-path
+;                "database.db"))
    request))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-login-page a-db request)
-
-  (print files-path)
-  
+(define (render-login-page request)
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
@@ -60,7 +57,7 @@
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Admin dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-admin-dashboard request [a-db (init-db! (build-path (current-directory) "database16.db"))]) 
+(define (render-admin-dashboard request [a-db (init-db! (build-path files-path "database.db"))]) 
    (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
@@ -466,7 +463,7 @@
   (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
   (display-to-file fcontents save-name #:exists 'replace);Limit the number of saved local files?
 
-  (define-values (locker-ids lock-ids) (extract-locker-lock-columns a-db (open-input-file (build-path (current-directory) save-name))))
+  (define-values (locker-ids lock-ids) (extract-locker-lock-columns a-db (open-input-file (build-path files-path save-name))))
     
   (define lockers-without-locks
     (filter (λ (locker) (not (locker-has-lock? a-db locker))) locker-ids))
@@ -514,7 +511,7 @@
 
   ;=-=-Handlers-=-=
   (define (confirm-handler request)    
-    (assign-locks! a-db (open-input-file (build-path (current-directory) save-name)))   
+    (assign-locks! a-db (open-input-file (build-path files-path save-name)))   
     (mass-assign-successful-page a-db request))
   
   (define (cancel-handler request)
@@ -842,16 +839,12 @@
                  (string->number (getenv "PORT"))
                  8001))
 
-(serve/servlet start
-               #:launch-browser? #f
+(serve/servlet start               
                #:quit? #f
                #:listen-ip #f
-               #:port port
-               ;#:server-root-path (build-path (current-directory))
-               #:extra-files-paths 
-               (list files-path)
+               #:port port               
+               #:extra-files-paths (list files-path)                              
+               #:servlet-path "/webapp.rkt")
                
-               #:servlet-path
-               "/webapp.rkt")
 
 

@@ -24,7 +24,10 @@
    request))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-login-page a-db request)  
+(define (render-login-page a-db request)
+
+  (print files-path)
+  
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
@@ -840,7 +843,7 @@
                  8001))
 
 (serve/servlet start
-               #:launch-browser? #t
+               #:launch-browser? #f
                #:quit? #f
                #:listen-ip #f
                #:port port

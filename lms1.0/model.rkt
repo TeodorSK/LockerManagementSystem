@@ -2,9 +2,7 @@
 (require db)
 (require racket/list)
 (require csv-reading)
-(require web-server/servlet)
 
-;init db returns db
 (define (init-db! home)
   (define db (sqlite3-connect #:database home #:mode 'create))
   (unless (table-exists? db "lockers")

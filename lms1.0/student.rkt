@@ -1,9 +1,6 @@
 #lang racket/base
 
 (require web-server/servlet)
-(require web-server/formlets)
-(require xml)
-(require string-util)
 (require racket/runtime-path)
 
 

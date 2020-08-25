@@ -2,10 +2,10 @@
 (require db)
 (require racket/list)
 (require csv-reading)
-(require web-server/servlet)
 
-;init db returns db
 (define (init-db! home)
+  (print "Fetching database from: ")
+  (print home)
   (define db (sqlite3-connect #:database home #:mode 'create))
   (unless (table-exists? db "lockers")
     (query-exec db
@@ -30,6 +30,15 @@
         	FOREIGN KEY(student_id) REFERENCES students(id),
         	FOREIGN KEY(locker_id) REFERENCES lockers(id))"))
     (insert-student-locker db 1 1 "forever"))
+  (unless (table-exists? db "notes_lockers")
+    (query-exec db
+                (string-append
+                 "CREATE TABLE notes_lockers (
+        	id	        INTEGER,
+        	locker_id	INTEGER,
+        	note	        TEXT,
+	        FOREIGN KEY (locker_id) REFERENCES lockers(id),
+         	PRIMARY KEY (id))")))
   db)
 
 (define (db-import-locker-csv! a-db file)
@@ -275,9 +284,6 @@
 ;students - listof student-id
 ;returns - a list of available lockers for each student
 (define (mass-assign-get-lockers a-db students) ;just returns a list of locker ids
-
-  print
-  
   (take (query-list
          a-db
          "SELECT id FROM lockers as locker1 WHERE NOT EXISTS (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")

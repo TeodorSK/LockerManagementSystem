@@ -4,8 +4,6 @@
 (require csv-reading)
 
 (define (init-db! home)
-  (print "Fetching database from: ")
-  (print home)
   (define db (sqlite3-connect #:database home #:mode 'create))
   (unless (table-exists? db "lockers")
     (query-exec db

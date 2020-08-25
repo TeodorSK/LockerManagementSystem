@@ -854,7 +854,11 @@
 (serve/servlet start               
                #:quit? #f
                #:listen-ip #f
-               #:port port               
+               #:port port
+               #:server-root-path files-path
+               #:ssl? #t
+               #:ssl-key (build-path files-path "private-key.pem")
+               #:ssl-cert (build-path files-path "server-cert.pem")
                #:extra-files-paths (list files-path)                              
                #:servlet-path "/webapp.rkt")
                

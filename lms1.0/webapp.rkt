@@ -570,18 +570,21 @@
                                                                                                `(p "Broken" (input ([class ,(button-style-class)][type "submit"][value "Set fixed"])))
                                                                                                `(p "Fixed" (input ([class ,(button-style-class)][type "submit"][value "Set broken"]))))))) 
                  (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
-                                            ,@(map format-notes (locker-notes a-db id))
+                                            ,@(map (λ (a-note) (format-notes a-note embed/url)) (locker-notes a-db id)) ;embed url list of len locker notes
                                             (form ([action ,(embed/url add-note-handler)])
                                                   (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
-                                                  (input ([type "text"][id "new-note"][name "new-note"]))
+                                                  (textarea ([style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
                                                   (input ([class ,(button-style-class)][type "submit"][value "Add new note"])))))
                  )))
 
-  (define (format-notes note)
+  (define (format-notes note embed/url)
     `(div ([class "w3-border w3-padding w3-pale-yellow"])
           (div ([class "note-user"]) "Admin:")
           (div ([class "note-content"]) ,note)
-          (div ([class "w3-button w3-xxlarge w3-padding-small w3-text-red"]) "🗑"))) ;TODO: make into button - implement add/rem
+          (form ([action ,(embed/url remove-note-handler)])
+                (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
+                (input ([type "hidden"][id "note"][name "note"][value ,note]))
+                (input ([class "w3-button w3-large w3-padding-small w3-text-red"][type "submit"][value "x"])))))          
 
   ;=-=-Handlers-=-=
   (define (dashboard-handler request)
@@ -602,9 +605,15 @@
     (render-locker-details a-db request))
 
   (define (add-note-handler request)
+    (define id (extract-binding/single 'locker-details-id (request-bindings request)))
+    (define note (extract-binding/single 'new-note (request-bindings request)))           
+    (add-locker-note a-db id note)
     (render-locker-details a-db request))
 
   (define (remove-note-handler request)
+    (define id (extract-binding/single 'locker-details-id (request-bindings request)))
+    (define note (extract-binding/single 'note (request-bindings request)))
+    (remove-locker-note a-db id note)
     (render-locker-details a-db request))
   
   (define (add-student-locker-handler request)
@@ -856,9 +865,7 @@
                #:listen-ip #f
                #:port port
                #:server-root-path files-path
-               #:ssl? #t
-               #:ssl-key (build-path files-path "private-key.pem")
-               #:ssl-cert (build-path files-path "server-cert.pem")
+               #:ssl? #f
                #:extra-files-paths (list files-path)                              
                #:servlet-path "/webapp.rkt")
                

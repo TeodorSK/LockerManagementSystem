@@ -302,6 +302,18 @@
    "INSERT INTO student_locker (student_id, locker_id, valid_until) VALUES (?, ?, ?)"
    student-id locker-id valid-until))
 
+(define (add-locker-note a-db locker-id note)
+  (query-exec
+   a-db
+   "INSERT INTO notes_lockers (locker_id, note) VALUES (?, ?)"
+   locker-id note))
+
+(define (remove-locker-note a-db locker-id note)
+  (query-exec
+   a-db
+   "DELETE FROM notes_lockers WHERE locker_id = ? AND note = ?"
+   locker-id note))
+
 (define (students-locker-id a-db id) ;student-id -> locker-id
   (query-value
    a-db

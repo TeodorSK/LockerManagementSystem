@@ -866,7 +866,7 @@
                #:server-root-path files-path
                #:ssl? #t
                #:ssl-cert (build-path files-path "server-cert.crt")	 
-;               #:ssl-key ssl-key
+               #:ssl-key (build-path files-path "private-key.key")
                #:extra-files-paths (list files-path)                              
                #:servlet-path "/webapp.rkt")
                

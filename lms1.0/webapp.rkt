@@ -1,5 +1,4 @@
 #lang racket
- 
 (require web-server/servlet)
 (require web-server/formlets)
 (require web-server/stuffers/gzip)
@@ -858,14 +857,16 @@
 
 (define port (if (getenv "PORT")
                  (string->number (getenv "PORT"))
-                 8001))
+                 8003))
 
 (serve/servlet start               
                #:quit? #f
                #:listen-ip #f
                #:port port
                #:server-root-path files-path
-               #:ssl? #f
+               #:ssl? #t
+               #:ssl-cert (build-path files-path "server-cert.crt")	 
+;               #:ssl-key ssl-key
                #:extra-files-paths (list files-path)                              
                #:servlet-path "/webapp.rkt")
                

@@ -1,0 +1,7 @@
+#lang racket/base
+(provide username set-username!)
+
+(define username "None")
+
+(define (set-username! new-username)
+  (set! username new-username))

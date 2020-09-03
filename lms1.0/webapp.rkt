@@ -769,12 +769,15 @@
     (render-admin-dashboard (redirect/get) a-db))
 
   (define (import-csv-handler request)
+    (define num-lockers-before (length (all-lockers a-db)))
     (define-values (fname fcontents)
       (formlet-process file-upload-formlet request))
     ;Saves a local copy of the upload file under name "!uploaded-filename", in order to read
     (define save-name (string-append "!uploaded-" fname))    
     (display-to-file fcontents (build-path files-path save-name) #:exists 'replace)
     (db-import-locker-csv! a-db (open-input-file (build-path files-path save-name)))
+    (define num-lockers-after (length (all-lockers a-db)))
+    (define num-new-lockers (- num-lockers-after num-lockers-before))
     (render-upload-successful-page a-db (redirect/get)))
   
   (send/suspend/dispatch response-generator))
@@ -819,14 +822,14 @@
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Upload success page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-upload-successful-page a-db request num-new-students)
+(define (render-upload-successful-page a-db request num-new-rows)
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
                 (h2 ((class "w3-text-green")) "File upload successful!")
-                (p ,(number->string num-new-students) " new students imported.")
+                (p ,(number->string num-new-rows) " new rows imported.")
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
            
            (div ((class "w3-twothird w3-card-4"))

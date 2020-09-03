@@ -7,20 +7,14 @@
 (require racket/runtime-path)
 (require "model.rkt")
 (require "student.rkt")
+(require "userinfo.rkt")
 
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
 
-(define admin-name "Teodor")
-
 (define-runtime-path files-path "htdocs")
 
-(define (start request)
-  (render-login-page
-;   (init-db!
-;    (build-path files-path
-;                "database.db"))
-   request))
+(define (start request) (render-login-page request))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-login-page request)
@@ -48,6 +42,8 @@
   (define (login-handler request)
     
     (define user-type (extract-bindings-safely 'uname "admin" request)) ;Make ryerson login call here
+
+    (set-username! (extract-bindings-safely 'uname "admin" request)) 
     
     (cond ((equal? user-type "admin") (render-admin-dashboard request))
           ((equal? user-type "student") (render-student-dashboard request))
@@ -62,7 +58,8 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,admin-name))
+                (h3 (string-append "Welcome back, " ,username))
+                ;userinfo.rkt test
 
                 (h4 "View")                                 
                 ,(nav-button (embed/url view-lockers-handler) "View Lockers")                
@@ -125,7 +122,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,admin-name))
+                (h3 (string-append "Welcome back, " ,username))
 
                 (h3 "Filters:")
                 (form ([id "filters"][action ,(embed/url filter-handler)][method "GET"])                      
@@ -143,7 +140,7 @@
 
                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Issue work orders")))(br)                
                 
-                (button ([class ,(button-style-class)][form "table"][type "submit"][name "delete-btn"])"Delete selected lockers!")                
+;                (button ([class ,(button-style-class)][form "table"][type "submit"][name "delete-btn"])"Delete selected lockers!")                
                 (p ((style "border-top: 3px dashed #bbb")))                
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard")
                 (br))           
@@ -188,7 +185,10 @@
 
   ;=-=-Handlers-=-=
   (define (table-handler request)
-    (cond ((exists-binding? 'delete-btn (request-bindings request)) ((print "deleting!")(render-view-lockers a-db request)))
+    (cond ((exists-binding? 'delete-btn (request-bindings request)) ((print "deleting!")
+;                                                                     (map clear-locker!(extract-binding/single 'locker-details-id (request-bindings request))
+;                                                                     TODO: release-locker! instead of delete
+                                                                          (render-view-lockers a-db request)))
           ((exists-binding? 'locker-details-id (request-bindings request)) (view-locker-details-handler request))
           (else (render-view-lockers a-db request))))
   
@@ -238,7 +238,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,admin-name))
+                (h3 (string-append "Welcome back, " ,username))
 
 
                 (h3 "Filters:")
@@ -520,13 +520,15 @@
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Locker details=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-locker-details a-db request)
-  (define id (extract-binding/single 'locker-details-id (request-bindings request)))
+  
+  (define locker-details-id (extract-binding/single 'locker-details-id (request-bindings request))) ;rename to locker-details-id
+  
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,admin-name))
+                (h3 (string-append "Welcome back, " ,username))
                                  
                 ,(nav-button (embed/url view-lockers-handler) "< Locker view")
                 )
@@ -534,7 +536,7 @@
            (div ((class "w3-twothird w3-card-4"))
                 (h1 "Locker Details:")
 
-                ,(display-locker-info id embed/url)
+                ,(display-locker-info locker-details-id embed/url)
                                 
                 ))))
 
@@ -566,23 +568,28 @@
                  (tr (td (h3 "Locker status: ")) (td ((class "w3-right-align")) (form ([action ,(embed/url (if (locker-broken? a-db id) set-fixed-handler set-broken-handler))][method "PUT"])
                                                                                           (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
                                                                                           ,(if (locker-broken? a-db id)
-                                                                                               `(p "Broken" (input ([class ,(button-style-class)][type "submit"][value "Set fixed"])))
-                                                                                               `(p "Fixed" (input ([class ,(button-style-class)][type "submit"][value "Set broken"]))))))) 
+                                                                                               `(div
+                                                                                                 (div ([class "w3-orange w3-center"]) "Broken")
+                                                                                                 (input ([class ,(button-style-class)][type "submit"][value "Set fixed"])))
+                                                                                               `(div
+                                                                                                 (div ([class "w3-blue w3-center"]) "Fixed")
+                                                                                                 (input ([class ,(button-style-class)][type "submit"][value "Set broken"]))))))) 
                  (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
-                                            ,@(map (λ (a-note) (format-notes a-note embed/url)) (locker-notes a-db id)) ;embed url list of len locker notes
-                                            (form ([action ,(embed/url add-note-handler)])
+                                            ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (locker-notes a-db id))
+                                            (form ([method "POST"][action ,(embed/url add-note-handler)])
                                                   (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
+                                                  (input ([type "hidden"][id "note-author"][name "note-author"][value ,username]))
                                                   (textarea ([style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
                                                   (input ([class ,(button-style-class)][type "submit"][value "Add new note"])))))
                  )))
 
-  (define (format-notes note embed/url)
+  (define (format-notes note-id embed/url)
     `(div ([class "w3-border w3-padding w3-pale-yellow"])
-          (div ([class "note-user"]) "Admin:")
-          (div ([class "note-content"]) ,note)
-          (form ([action ,(embed/url remove-note-handler)])
-                (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
-                (input ([type "hidden"][id "note"][name "note"][value ,note]))
+          (div ([class "note-user"]) ,(locker-note-author a-db note-id))
+          (div ([class "note-content"]) ,(locker-note-content a-db note-id))
+          (form ([action ,(embed/url remove-note-handler)])                
+                (input ([type "hidden"][id "note-id"][name "note-id"][value ,(number->string note-id)]))
+                (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,locker-details-id]))
                 (input ([class "w3-button w3-large w3-padding-small w3-text-red"][type "submit"][value "x"])))))          
 
   ;=-=-Handlers-=-=
@@ -596,23 +603,23 @@
     (render-student-details a-db request))
 
   (define (set-broken-handler request)
-    (set-locker-broken! a-db id)
+    (set-locker-broken! a-db locker-details-id)
     (render-locker-details a-db request))
 
   (define (set-fixed-handler request)
-    (set-locker-fixed! a-db id)
+    (set-locker-fixed! a-db locker-details-id)
     (render-locker-details a-db request))
 
   (define (add-note-handler request)
     (define id (extract-binding/single 'locker-details-id (request-bindings request)))
+    (define note-author (extract-binding/single 'note-author (request-bindings request)))           
     (define note (extract-binding/single 'new-note (request-bindings request)))           
-    (add-locker-note a-db id note)
+    (add-locker-note a-db id note note-author)
     (render-locker-details a-db request))
 
-  (define (remove-note-handler request)
-    (define id (extract-binding/single 'locker-details-id (request-bindings request)))
-    (define note (extract-binding/single 'note (request-bindings request)))
-    (remove-locker-note a-db id note)
+  (define (remove-note-handler request)    
+    (define note-id (extract-binding/single 'note-id (request-bindings request)))
+    (remove-locker-note a-db note-id)
     (render-locker-details a-db request))
   
   (define (add-student-locker-handler request)
@@ -622,6 +629,7 @@
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student details=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-details a-db request)
+  
   (define student-details-id (extract-binding/single 'student-details-id (request-bindings request)))
   
   (define (response-generator embed/url)
@@ -629,7 +637,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,admin-name))
+                (h3 (string-append "Welcome back, " ,username))
                 
                 ,(nav-button (embed/url view-students-handler) "< Student view"))
                                                         
@@ -660,11 +668,38 @@
                                                           (input ([type "hidden"][id "student-id"][name "student-id"][value ,id]))
                                                           (input ([class ,(button-style-class)][type "submit"][value "Add locker"])))))))
                  (tr (td(h3 "Email:"))(td ((class "w3-right-align")) ,(student-email a-db id)))
-                 (tr (td(h3 "Notes:"))(td ((class "w3-right-align")) "")))))
+                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
+                                            ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (student-notes a-db id))
+                                            (form ([method "POST"][action ,(embed/url add-note-handler)])
+                                                  (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,id]))
+                                                  (input ([type "hidden"][id "note-author"][name "note-author"][value ,username]))
+                                                  (textarea ([style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
+                                                  (input ([class ,(button-style-class)][type "submit"][value "Add new note"]))))))))
+
+  (define (format-notes note-id embed/url)
+    `(div ([class "w3-border w3-padding w3-pale-yellow"])
+          (div ([class "note-user"]) ,(student-note-author a-db note-id))
+          (div ([class "note-content"]) ,(student-note-content a-db note-id))
+          (form ([action ,(embed/url remove-note-handler)])                
+                (input ([type "hidden"][id "note-id"][name "note-id"][value ,(number->string note-id)]))
+                (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-details-id]))
+                (input ([class "w3-button w3-large w3-padding-small w3-text-red"][type "submit"][value "x"])))))
 
   ;=-=-Handlers-=-=
   (define (dashboard-handler request)
     (render-admin-dashboard (redirect/get) a-db))
+
+  (define (add-note-handler request)
+    (define id (extract-binding/single 'student-details-id (request-bindings request)))
+    (define note-author (extract-binding/single 'note-author (request-bindings request)))           
+    (define note (extract-binding/single 'new-note (request-bindings request)))           
+    (add-student-note a-db id note note-author)
+    (render-student-details a-db request))
+
+  (define (remove-note-handler request)    
+    (define note-id (extract-binding/single 'note-id (request-bindings request)))
+    (remove-student-note a-db note-id)
+    (render-student-details a-db request))
   
   (define (view-students-handler request)
     (render-view-students a-db (redirect/get)))
@@ -769,26 +804,29 @@
     (render-admin-dashboard (redirect/get) a-db))
 
   (define (import-csv-handler request)
+    (define num-students-before (length (all-students a-db)))
     (define-values (fname fcontents)
       (formlet-process file-upload-formlet request))
     ;Saves a local copy of the upload file under name "!uploaded-filename"
     (define save-name (string-append "!uploaded-" fname))
-    (display-to-file fcontents (build-path files-path save-name) #:exists 'replace)
+    (display-to-file fcontents (build-path files-path save-name) #:exists 'replace)    
     (db-import-student-csv! a-db (open-input-file (build-path files-path save-name)))
-
+    (define num-students-after (length (all-students a-db)))
+    (define num-new-students (- num-students-after num-students-before))
     
-    (render-upload-successful-page a-db (redirect/get)))
+    (render-upload-successful-page a-db (redirect/get) num-new-students))
   
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Upload success page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-upload-successful-page a-db request)
+(define (render-upload-successful-page a-db request num-new-students)
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h2 ((class "w3-text-green")) "File upload successful!")                             
+                (h2 ((class "w3-text-green")) "File upload successful!")
+                (p ,(number->string num-new-students) " new students imported.")
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
            
            (div ((class "w3-twothird w3-card-4"))
@@ -864,7 +902,9 @@
                #:listen-ip #f
                #:port port
                #:server-root-path files-path
-               #:ssl? #t
+               #:ssl? #f
+;               #:ssl-cert (build-path files-path "server-cert.crt")	 
+;               #:ssl-key (build-path files-path "private-key.key")
                #:extra-files-paths (list files-path)                              
                #:servlet-path "/webapp.rkt")
                

@@ -888,9 +888,9 @@
                 (form ([id "mail"][action ,(embed/url send-handler)][method "POST"])
                 (table ((class "w3-table w3-bordered"))
                        (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
-                       (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "")]))))
+                       (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "Mass email")]))))
                        (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
-                                         "test body"))))
+                                         ""))))
                 )))))
            
   ;=-=-Handlers-=-=
@@ -898,16 +898,16 @@
     (render-admin-dashboard (redirect/get) a-db))
 
   (define (send-handler request)
-    
+;    (print (request-bindings request))
     (smtp-send-message "localhost"
                    "noreply@racket.cs.ryerson.ca"
-                   (list "tsandelkonjevic@ryerson.ca") ;recipients
+                   recipients
                    (standard-message-header "noreply@racket.cs.ryerson.ca"
-                                            (list "tsandelkonjevic@ryerson.ca") ;to
+                                            (list) ;to
                                             (list) ;cc
-                                            (list) ;bcc
+                                            recipients ;bcc
                                             (extract-binding/single 'subject (request-bindings request)))
-                   (extract-binding/single 'body (request-bindings request))
+                   (list (extract-binding/single 'body (request-bindings request)))
                    #:port-no 25)
     
     (render-admin-dashboard (redirect/get) a-db))

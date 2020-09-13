@@ -890,18 +890,19 @@
                        (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
                        (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "Mass email")]))))
                        (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
-                                         ,(cond ((exists-binding? 'work-order (request-bindings request))
-                                                 (string-append "Hello Maintenance crew ~n"
-                                                                (map (λ (l) (string-append l (format ", ~n"))) (extract-bindings 'id (request-bindings request)))))
-                                                ((exists-binding? 'mass-email (request-bindings request)) "Dear Students,"))
-                                         )))))))))                
-           
+                                         ,(email-body))))))))))
+                                                         
+
+  (define email-body
+    (cond ((exists-binding? 'work-order (request-bindings request))
+           (extract-bindings 'id (request-bindings request)))
+          ((exists-binding? 'mass-email (request-bindings request)) "Dear Students,")))
+  
   ;=-=-Handlers-=-=
   (define (dashboard-handler request)
     (render-admin-dashboard (redirect/get) a-db))
 
   (define (send-handler request)
-;    (print (request-bindings request))
     (smtp-send-message "localhost"
                    "noreply@racket.cs.ryerson.ca"
                    recipients

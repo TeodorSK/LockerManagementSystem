@@ -890,12 +890,12 @@
                        (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
                        (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "Mass email")]))))
                        (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
-                                         ,(email-body))))))))))
+                                         ,email-body)))))))))
                                                          
 
   (define email-body
     (cond ((exists-binding? 'work-order (request-bindings request))
-           (extract-bindings 'id (request-bindings request)))
+           (string-append* (map (λ (s) (string-append s ", ")) (extract-bindings 'id (request-bindings request)))))
           ((exists-binding? 'mass-email (request-bindings request)) "Dear Students,")))
   
   ;=-=-Handlers-=-=

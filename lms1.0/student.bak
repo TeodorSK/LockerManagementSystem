@@ -1,9 +1,7 @@
 #lang racket/base
 
 (require web-server/servlet)
-(require web-server/formlets)
-(require xml)
-(require string-util)
+(require racket/runtime-path)
 
 
 (require "model.rkt")
@@ -11,7 +9,7 @@
 
 (define-runtime-path files-path "htdocs\\")
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-student-dashboard request [a-db (init-db! (build-path (current-directory) "database16.db"))])
+(define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
   ;TODO: instead of passing entire DB, pass only this student's record
   ;How do you do updates then?
   ;Is there a listener process that can run from server
@@ -130,6 +128,31 @@
   (define (my-profile-handler request)
     (render-my-profile a-db request))
 
+  (send/suspend/dispatch response-generator))
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Send mail=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (student-send-mail-page a-db request)
+
+  (define email-type (cond ((exists-binding? 'mass-email (request-bindings request)) "Mass Student Email")
+                           ((exists-binding? 'work-order (request-bindings request)) "Word Order")))
+  
+  (define (response-generator embed/url)
+    (html-wrap
+     `(div ((class "w3-row-padding"))
+           (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
+                (h2 ((class "w3-text-green")) "File upload successful!")
+                (p ,(number->string num-new-rows) " new rows imported.")
+                ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
+           
+           (div ((class "w3-twothird w3-card-4"))
+                (img ((style "max-width:100%")(src "success.gif")))
+                ))))
+           
+  ;=-=-Handlers-=-=
+  (define (dashboard-handler request)
+    (render-admin-dashboard (redirect/get) a-db))
+  
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Other=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

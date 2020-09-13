@@ -9,10 +9,21 @@
 (require "student.rkt")
 (require "userinfo.rkt")
 
+(require net/smtp)
+(require net/head)
+
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
 
 (define-runtime-path files-path "htdocs")
+
+(smtp-send-message "localhost"
+                   "test@mail.test.com"
+                   "tsandelkonjevic@ryerson.ca"
+                   (standard-message-header "test@mail.test.com" "tsandelkonjevic@ryerson.ca" "" "" "Test subject")
+                   "It works!"
+                   #:port-no 25)
+                   
 
 (define (start request) (render-login-page request))
 
@@ -769,12 +780,15 @@
     (render-admin-dashboard (redirect/get) a-db))
 
   (define (import-csv-handler request)
+    (define num-lockers-before (length (all-lockers a-db)))
     (define-values (fname fcontents)
       (formlet-process file-upload-formlet request))
     ;Saves a local copy of the upload file under name "!uploaded-filename", in order to read
     (define save-name (string-append "!uploaded-" fname))    
     (display-to-file fcontents (build-path files-path save-name) #:exists 'replace)
     (db-import-locker-csv! a-db (open-input-file (build-path files-path save-name)))
+    (define num-lockers-after (length (all-lockers a-db)))
+    (define num-new-lockers (- num-lockers-after num-lockers-before))
     (render-upload-successful-page a-db (redirect/get)))
   
   (send/suspend/dispatch response-generator))
@@ -819,14 +833,14 @@
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Upload success page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-upload-successful-page a-db request num-new-students)
+(define (render-upload-successful-page a-db request num-new-rows)
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
                 (h2 ((class "w3-text-green")) "File upload successful!")
-                (p ,(number->string num-new-students) " new students imported.")
+                (p ,(number->string num-new-rows) " new rows imported.")
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
            
            (div ((class "w3-twothird w3-card-4"))
@@ -895,7 +909,7 @@
 
 (define port (if (getenv "PORT")
                  (string->number (getenv "PORT"))
-                 8003))
+                 8005))
 
 (serve/servlet start               
                #:quit? #f
@@ -903,6 +917,7 @@
                #:port port
                #:server-root-path files-path
                #:ssl? #f
+	       #:max-waiting 5000
 ;               #:ssl-cert (build-path files-path "server-cert.crt")	 
 ;               #:ssl-key (build-path files-path "private-key.key")
                #:extra-files-paths (list files-path)                              

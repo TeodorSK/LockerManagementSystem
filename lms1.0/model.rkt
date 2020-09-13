@@ -48,12 +48,10 @@
   (define (extract-locker-data-from-row a-row)
     (define locker-num (list-ref a-row 1))
     (define locker-location (list-ref a-row 3))
-    (if (and
-         (string->number locker-num) ;check if unique      
-         (string? locker-location))
+    (if (and (unique-locker-id? a-db locker-num) (number? (string->number locker-num)))
         (insert-locker a-db locker-num locker-location 0 0)
         ;(list locker-num locker-location)
-        "incorrect format (not unique or not int, str)"))
+        (string-append "incorrect format (not unique or not int, str) - ID: " locker-num)))
   (csv-map extract-locker-data-from-row file))
 
 (define (db-import-student-csv! a-db file)
@@ -65,7 +63,7 @@
     (define student-email (list-ref a-row 4))
     (if (unique-student-id? a-db student-id)
         (insert-student a-db student-id student-firstname student-lastname student-program student-email)
-        (string-append "incorrect format (not unique or not int, str)" student-id)))
+        (string-append "incorrect format (not unique or not int, str) - ID: " student-id)))
   (map extract-student-data-from-row (list-tail (csv->list file) 1 ))) ;list-tail to chop of header row
 
 (define (unique-student-id? a-db student-id)
@@ -73,6 +71,13 @@
    a-db
    "SELECT COUNT(1) FROM students WHERE id = ?"
    student-id)))
+
+(define (unique-locker-id? a-db locker-id)
+  (= 0 (query-value
+   a-db
+   "SELECT COUNT(1) FROM lockers WHERE id = ?"
+   locker-id)))
+
 
 (define (extract-locker-lock-columns a-db file) ;file -> (list lockers locks)
   (define lockers (list))

@@ -4,24 +4,17 @@
 (require csv-reading)
 
 (define (init-db! home)
-  (print "Fetching database from: ")
-  (print home)
   (define db (sqlite3-connect #:database home #:mode 'create))
+  ;Create Lockers Table
   (unless (table-exists? db "lockers")
-    (query-exec db
-                (string-append
-                 "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lock_id INTEGER, is_broken BIT)"))
-    
-    (insert-locker db 1 "near here (sample locker)" 0 0))
+    (query-exec db "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lock_id INTEGER, is_broken BIT)"))
+  ;Create Students Table
   (unless (table-exists? db "students")
-    (query-exec db
-                (string-append
-                 "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)"))
-    (insert-student db 1 "john" "doe" "compsci" "abc@abc.com"))
+    (query-exec db "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)"))
+  ;Create Student_locker table
   (unless (table-exists? db "student_locker")
     (query-exec db
-                (string-append
-                 "CREATE TABLE student_locker (
+                "CREATE TABLE student_locker (
         	student_locker_id	INTEGER,
         	student_id      	INTEGER UNIQUE,
         	locker_id       	INTEGER UNIQUE,
@@ -29,16 +22,26 @@
         	PRIMARY KEY(student_locker_id AUTOINCREMENT),
         	FOREIGN KEY(student_id) REFERENCES students(id),
         	FOREIGN KEY(locker_id) REFERENCES lockers(id))"))
-    (insert-student-locker db 1 1 "forever"))
+  ;Create Notes_lockers table
   (unless (table-exists? db "notes_lockers")
     (query-exec db
-                (string-append
-                 "CREATE TABLE notes_lockers (
+                "CREATE TABLE notes_lockers (
         	id	        INTEGER,
         	locker_id	INTEGER,
         	note	        TEXT,
+                note_author     TEXT,
 	        FOREIGN KEY (locker_id) REFERENCES lockers(id),
-         	PRIMARY KEY (id))")))
+         	PRIMARY KEY (id))"))
+  ;Create Notes_students table
+  (unless (table-exists? db "notes_students")
+    (query-exec db
+                "CREATE TABLE notes_students (
+        	id	        INTEGER,
+        	student_id	INTEGER,
+        	note	        TEXT,
+                note_author     TEXT,
+	        FOREIGN KEY (student_id) REFERENCES students(id),
+         	PRIMARY KEY (id))"))
   db)
 
 (define (db-import-locker-csv! a-db file)
@@ -60,15 +63,23 @@
     (define student-lastname (list-ref a-row 2))
     (define student-program (list-ref a-row 3))
     (define student-email (list-ref a-row 4))
-    (if (and
-         (string->number student-id) ;check if unique ; Actually unique check is in the CREATE TABLE statement, just add exception catcher         
-         (string? student-firstname)
-         (string? student-lastname)
-         (string? student-program)
-         (string? student-email))
+    (if (unique-student-id? a-db student-id)
         (insert-student a-db student-id student-firstname student-lastname student-program student-email)
-        "incorrect format (not unique or not int, str)"))
-  (csv-map extract-student-data-from-row file))
+        (string-append "incorrect format (not unique or not int, str)" student-id)))
+  (map extract-student-data-from-row (list-tail (csv->list file) 1 ))) ;list-tail to chop of header row
+
+(define (unique-student-id? a-db student-id)
+  (= 0 (query-value
+   a-db
+   "SELECT COUNT(1) FROM students WHERE id = ?"
+   student-id)))
+
+(define (unique-locker-id? a-db locker-id)
+  (= 0 (query-value
+   a-db
+   "SELECT COUNT(1) FROM lockers WHERE id = ?"
+   locker-id)))
+
 
 (define (extract-locker-lock-columns a-db file) ;file -> (list lockers locks)
   (define lockers (list))
@@ -162,11 +173,41 @@
    "SELECT location FROM lockers WHERE id = ?"
    id))
 
-(define (locker-notes a-db id)
+(define (locker-notes a-db locker-id)
   (query-list
    a-db
-   "SELECT note FROM notes_lockers WHERE locker_id = ?"
-   id))
+   "SELECT id FROM notes_lockers WHERE locker_id = ?"
+   locker-id))
+
+(define (locker-note-content a-db note-id)
+  (query-value
+   a-db
+   "SELECT note FROM notes_lockers WHERE id = ?"
+   note-id))
+
+(define (locker-note-author a-db note-id)
+  (query-value
+   a-db
+   "SELECT note_author FROM notes_lockers WHERE id = ?"
+   note-id))
+
+(define (student-notes a-db student-id)
+  (query-list
+   a-db
+   "SELECT id FROM notes_students WHERE student_id = ?"
+   student-id))
+
+(define (student-note-content a-db note-id)
+  (query-value
+   a-db
+   "SELECT note FROM notes_students WHERE id = ?"
+   note-id))
+
+(define (student-note-author a-db note-id)
+  (query-value
+   a-db
+   "SELECT note_author FROM notes_students WHERE id = ?"
+   note-id))
 
 (define (locker-owner-id a-db id)
   (define (exn-handler exn)
@@ -281,9 +322,7 @@
    "INSERT INTO students (id, firstname, lastname, program, email) VALUES (?, ?, ?, ? ,?)"  
    id firstname lastname program email))
 
-;students - listof student-id
-;returns - a list of available lockers for each student
-(define (mass-assign-get-lockers a-db students) ;just returns a list of locker ids
+(define (mass-assign-get-lockers a-db students) ;(listof student-id) -> (listof locker-id)
   (take (query-list
          a-db
          "SELECT id FROM lockers as locker1 WHERE NOT EXISTS (SELECT * FROM student_locker AS locker2 WHERE locker2.[locker_id] = locker1.[id])")
@@ -303,6 +342,30 @@
    a-db
    "INSERT INTO student_locker (student_id, locker_id, valid_until) VALUES (?, ?, ?)"
    student-id locker-id valid-until))
+
+(define (add-locker-note a-db locker-id note note-author)
+  (query-exec
+   a-db
+   "INSERT INTO notes_lockers (locker_id, note, note_author) VALUES (?, ?, ?)"
+   locker-id note note-author))
+
+(define (remove-locker-note a-db note-id)
+  (query-exec
+   a-db
+   "DELETE FROM notes_lockers WHERE id = ?"
+   note-id))
+
+(define (add-student-note a-db student-id note note-author)
+  (query-exec
+   a-db
+   "INSERT INTO notes_students (student_id, note, note_author) VALUES (?, ?, ?)"
+   student-id note note-author))
+
+(define (remove-student-note a-db note-id)
+  (query-exec
+   a-db
+   "DELETE FROM notes_students WHERE id = ?"
+   note-id))
 
 (define (students-locker-id a-db id) ;student-id -> locker-id
   (query-value

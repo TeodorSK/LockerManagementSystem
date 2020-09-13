@@ -166,7 +166,7 @@
                 (form ([id "mail"][action ,(embed/url send-handler)][method "POST"])
                 (table ((class "w3-table w3-bordered"))
 ;                       (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
-                       (tr (td "Subject: " (input ([disabled "true"][type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'locker-request (request-bindings request)) "New locker request" "Issue with locker")]))))
+                       (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'locker-request (request-bindings request)) "New locker request" "Issue with locker")]))))
                        (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
                                          ,email-body)))))))))
 
@@ -187,6 +187,8 @@
                                             "tsandelkonjevic@ryerson.ca" ;to
                                             (list) ;cc
                                             (list) ;bcc
+;                                            (cond ((exists-binding? 'locker-request (request-bindings request)) "New locker request")
+;                                                  ((exists-binding? 'report-issue (request-bindings request)) "Locker repair req")) ;don't hardcode this, resolve in 
                                             (extract-binding/single 'subject (request-bindings request)))
                    (list (extract-binding/single 'body (request-bindings request)))
                    #:port-no 25)

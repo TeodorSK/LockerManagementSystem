@@ -9,7 +9,7 @@
 (require "model.rkt")
 (provide (all-defined-out))
 
-(define-runtime-path files-path "htdocs\\")
+(define-runtime-path files-path "htdocs")
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
   (define (response-generator embed/url)
@@ -182,9 +182,9 @@
   (define (send-handler request)
     (smtp-send-message "localhost"
                    "student@racket.cs.ryerson.ca" ;Current student email
-                   "tsandelkonjevic@ryerson.ca" ;Admin email
+                   (list "tsandelkonjevic@ryerson.ca") ;Admin email
                    (standard-message-header "student@racket.cs.ryerson.ca" ;Current student email
-                                            "tsandelkonjevic@ryerson.ca" ;to
+                                            (list "tsandelkonjevic@ryerson.ca") ;to
                                             (list) ;cc
                                             (list) ;bcc
 ;                                            (cond ((exists-binding? 'locker-request (request-bindings request)) "New locker request")

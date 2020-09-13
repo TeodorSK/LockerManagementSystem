@@ -5,14 +5,30 @@
 (require string-util)
 (require web-server/servlet-env)
 (require racket/runtime-path)
+(require net/smtp)
+(require net/head)
 (require "model.rkt")
 (require "student.rkt")
 (require "userinfo.rkt")
+
+
 
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
 
 (define-runtime-path files-path "htdocs")
+
+;(require net/smtp)
+;(require net/head)
+;(smtp-send-message "localhost"
+;                   "test@mail.test.com"
+;                   "tsandelkonjevic@ryerson.ca"
+;                   (standard-message-header "test@mail.test.com"
+;                                            (list "tsandelkonjevic@ryerson.ca")
+;                                            (list) (list) "Test subject")
+;                   "It works!"
+;                   #:port-no 25)
+                   
 
 (define (start request) (render-login-page request))
 
@@ -136,7 +152,9 @@
                       (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
 
                 (p ((style "border-top: 3px dashed #bbb")))                
-                ,(nav-button (embed/url assign-locks-handler) "Assign locks to lockers") 
+                ,(nav-button (embed/url assign-locks-handler) "Assign locks to lockers")
+;                ,(nav-button (embed/url table-handler) "Issue work orders")
+                (button ([class ,(button-style-class)][form "table"][type "submit"][name "work-order"])"Issue work orders") (br)
 
                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Issue work orders")))(br)                
                 
@@ -190,6 +208,7 @@
 ;                                                                     TODO: release-locker! instead of delete
                                                                           (render-view-lockers a-db request)))
           ((exists-binding? 'locker-details-id (request-bindings request)) (view-locker-details-handler request))
+          ((exists-binding? 'work-order (request-bindings request)) (send-mail-page a-db request))
           (else (render-view-lockers a-db request))))
   
   (define (assign-locks-handler request)
@@ -259,7 +278,8 @@
 
                 (p ((style "border-top: 3px dashed #bbb")))
                 (button ([class ,(button-style-class)][form "table"][type "submit"][name "mass-assign"])"Mass assign lockers") (br)
-                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Mass email")))
+                (button ([class ,(button-style-class)][form "table"][type "submit"][name "mass-email"])"Mass email") (br)
+;                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Mass email")))
                 (p ((style "border-top: 3px dashed #bbb")))                
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard")
                 (br))
@@ -302,6 +322,7 @@
   (define (table-handler request)
     (cond ((exists-binding? 'mass-assign (request-bindings request)) (mass-assign-handler request))
           ((exists-binding? 'student-details-id (request-bindings request)) (view-student-details-handler request))
+          ((exists-binding? 'mass-email (request-bindings request)) (send-mail-page a-db request))
           (else (render-view-students a-db request))))
   
   (define (filter-handler request)    
@@ -778,7 +799,7 @@
     (db-import-locker-csv! a-db (open-input-file (build-path files-path save-name)))
     (define num-lockers-after (length (all-lockers a-db)))
     (define num-new-lockers (- num-lockers-after num-lockers-before))
-    (render-upload-successful-page a-db (redirect/get)))
+    (render-upload-successful-page a-db (redirect/get) num-new-lockers))
   
   (send/suspend/dispatch response-generator))
 
@@ -838,6 +859,57 @@
            
   ;=-=-Handlers-=-=
   (define (dashboard-handler request)
+    (render-admin-dashboard (redirect/get) a-db))
+  
+  (send/suspend/dispatch response-generator))
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Send Mail=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (send-mail-page a-db request)
+  
+  (define email-type (cond ((exists-binding? 'mass-email (request-bindings request)) "Mass Student Email")
+                           ((exists-binding? 'work-order (request-bindings request)) "Word Order")))  
+
+  (define recipients (cond ((exists-binding? 'mass-email (request-bindings request)) (map (λ (student-id) (student-email a-db student-id)) (extract-bindings 'id (request-bindings request))))
+                           ((exists-binding? 'work-order (request-bindings request)) "Work order email address")))
+  
+  
+  (define (response-generator embed/url)
+    (html-wrap
+     `(div ((class "w3-row-padding"))
+           (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
+                (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
+                (h2 "Send mail")
+                
+                (button ([class ,(button-style-class)][form "mail"][type "submit"][name "send"]) "Send")
+                ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
+           
+           (div ((class "w3-twothird w3-card-4"))
+                (h2 "New message")
+                (form ([id "mail"][action ,(embed/url send-handler)][method "POST"])
+                (table ((class "w3-table w3-bordered"))
+                       (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
+                       (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "")]))))
+                       (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
+                                         "test body"))))
+                )))))
+           
+  ;=-=-Handlers-=-=
+  (define (dashboard-handler request)
+    (render-admin-dashboard (redirect/get) a-db))
+
+  (define (send-handler request)
+    
+    (smtp-send-message "localhost"
+                   "noreply@racket.cs.ryerson.ca"
+                   (list "tsandelkonjevic@ryerson.ca") ;recipients
+                   (standard-message-header "noreply@racket.cs.ryerson.ca"
+                                            (list "tsandelkonjevic@ryerson.ca") ;to
+                                            (list) ;cc
+                                            (list) ;bcc
+                                            (extract-binding/single 'subject (request-bindings request)))
+                   (extract-binding/single 'body (request-bindings request))
+                   #:port-no 25)
+    
     (render-admin-dashboard (redirect/get) a-db))
   
   (send/suspend/dispatch response-generator))
@@ -906,7 +978,7 @@
                #:port port
                #:server-root-path files-path
                #:ssl? #f
-	       #:max-waiting 5000
+	       #:max-waiting 50000
 ;               #:ssl-cert (build-path files-path "server-cert.crt")	 
 ;               #:ssl-key (build-path files-path "private-key.key")
                #:extra-files-paths (list files-path)                              

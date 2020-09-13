@@ -870,7 +870,7 @@
                            ((exists-binding? 'work-order (request-bindings request)) "Word Order")))  
 
   (define recipients (cond ((exists-binding? 'mass-email (request-bindings request)) (map (λ (student-id) (student-email a-db student-id)) (extract-bindings 'id (request-bindings request))))
-                           ((exists-binding? 'work-order (request-bindings request)) "Work order email address")))
+                           ((exists-binding? 'work-order (request-bindings request)) (list "mrtheo1000@gmail.com")))) ;TODO: replace with actual work order email
   
   
   (define (response-generator embed/url)
@@ -880,18 +880,21 @@
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
                 (h2 "Send mail")
                 
-                (button ([class ,(button-style-class)][form "mail"][type "submit"][name "send"]) "Send")
+                (button ([class ,(button-style-class)][form "mail"][type "submit"][name "send"]) "Send") (br)
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
            
            (div ((class "w3-twothird w3-card-4"))
-                (h2 "New message")
+                (h2 ,(string-append "New message - " email-type))
                 (form ([id "mail"][action ,(embed/url send-handler)][method "POST"])
                 (table ((class "w3-table w3-bordered"))
                        (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
                        (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "Mass email")]))))
                        (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
-                                         ""))))
-                )))))
+                                         ,(cond ((exists-binding? 'work-order (request-bindings request))
+                                                 (string-append "Hello Maintenance crew ~n"
+                                                                (map (λ (l) (string-append l (format ", ~n"))) (extract-bindings 'id (request-bindings request)))))
+                                                ((exists-binding? 'mass-email (request-bindings request)) "Dear Students,"))
+                                         )))))))))                
            
   ;=-=-Handlers-=-=
   (define (dashboard-handler request)

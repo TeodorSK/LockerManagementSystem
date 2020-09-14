@@ -11,24 +11,10 @@
 (require "student.rkt")
 (require "userinfo.rkt")
 
-
-
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
 
-(define-runtime-path files-path "htdocs")
-
-;(require net/smtp)
-;(require net/head)
-;(smtp-send-message "localhost"
-;                   "test@mail.test.com"
-;                   "tsandelkonjevic@ryerson.ca"
-;                   (standard-message-header "test@mail.test.com"
-;                                            (list "tsandelkonjevic@ryerson.ca")
-;                                            (list) (list) "Test subject")
-;                   "It works!"
-;                   #:port-no 25)
-                   
+(define-runtime-path files-path "htdocs")                  
 
 (define (start request) (render-login-page request))
 
@@ -153,12 +139,8 @@
 
                 (p ((style "border-top: 3px dashed #bbb")))                
                 ,(nav-button (embed/url assign-locks-handler) "Assign locks to lockers")
-;                ,(nav-button (embed/url table-handler) "Issue work orders")
-                (button ([class ,(button-style-class)][form "table"][type "submit"][name "work-order"])"Issue work orders") (br)
-
-                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Issue work orders")))(br)                
-                
-;                (button ([class ,(button-style-class)][form "table"][type "submit"][name "delete-btn"])"Delete selected lockers!")                
+                (button ([class ,(button-style-class)][form "table"][type "submit"][name "work-order"])"Issue work orders") (br)                                              
+                (button ([class ,(button-style-class)][form "table"][type "submit"][name "release"])"Release selected lockers")                
                 (p ((style "border-top: 3px dashed #bbb")))                
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard")
                 (br))           
@@ -203,12 +185,14 @@
 
   ;=-=-Handlers-=-=
   (define (table-handler request)
-    (cond ((exists-binding? 'delete-btn (request-bindings request)) ((print "deleting!")
-;                                                                     (map clear-locker!(extract-binding/single 'locker-details-id (request-bindings request))
-;                                                                     TODO: release-locker! instead of delete
-                                                                          (render-view-lockers a-db request)))
-          ((exists-binding? 'locker-details-id (request-bindings request)) (view-locker-details-handler request))
-          ((exists-binding? 'work-order (request-bindings request)) (send-mail-page a-db request))
+    (cond ((exists-binding? 'release (request-bindings request))
+           (print (extract-bindings 'id (request-bindings request)))
+           ((map (λ (locker) (release-student-locker a-db locker)) (extract-bindings 'id (request-bindings request)))
+            (render-view-lockers a-db request)))
+          ((exists-binding? 'locker-details-id (request-bindings request))
+           (view-locker-details-handler request))
+          ((exists-binding? 'work-order (request-bindings request))
+           (send-email-page a-db request))
           (else (render-view-lockers a-db request))))
   
   (define (assign-locks-handler request)
@@ -217,13 +201,6 @@
   (define (filter-handler request)    
     (render-view-lockers a-db request))
   
-  (define (clear-db-handler request)
-    (define lockers (if (exists-binding? 'id (request-bindings request))
-                        (map (λ (locker) extract-binding/single 'id locker) (request-bindings request))
-                        (list)))        
-    (map (λ (locker) (clear-locker! a-db locker)) lockers)
-    (render-view-lockers a-db (redirect/get)))
-
   (define (dashboard-handler request)
     (render-admin-dashboard (redirect/get) a-db))
   
@@ -268,27 +245,27 @@
                       (input ([style "width: 100%"][type "text"][name "lastname"][id "lastname"][placeholder "Last name"])) (br) (br)                      
                       (select ([style "max-width:100%"][name "program"][id "program"])                              
                               (option ([value ,(if (exists-binding? 'program (request-bindings request)) program "")])"Select Program")
-                              ,@(map (λ (str) `(option ([value ,str]) ,str)) (all-programs a-db))) (br) (br)                       
-                                                                                                   (input ([style "width: 100%"][type "text"][name "email"][id "email"][placeholder "Email"])) (br) (br)
-                                                                                                   ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                      
-                                                                                                   ,(checkmark "awaiting" "awaiting" "Awaiting locker" (if (and (null-string? awaiting) filtered?) #f #t))
-                                                                                                   (input ([type "hidden"][name "filtered"][value "yes"]))
-                                                                                                   (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
+                              ,@(map (λ (str) `(option ([value ,str]) ,str)) (all-programs a-db))) (br) (br)
+                      (input ([style "width: 100%"][type "text"][name "email"][id "email"][placeholder "Email"])) (br) (br)
+                      ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                      
+                      ,(checkmark "awaiting" "awaiting" "Awaiting locker" (if (and (null-string? awaiting) filtered?) #f #t))
+                      (input ([type "hidden"][name "filtered"][value "yes"]))
+                      (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
                                  
 
                 (p ((style "border-top: 3px dashed #bbb")))
                 (button ([class ,(button-style-class)][form "table"][type "submit"][name "mass-assign"])"Mass assign lockers") (br)
                 (button ([class ,(button-style-class)][form "table"][type "submit"][name "mass-email"])"Mass email") (br)
-;                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Mass email")))
                 (p ((style "border-top: 3px dashed #bbb")))                
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard")
                 (br))
 
            (div ((class "w3-twothird w3-card-4"))
-                (table ((style "width:100%"))(tr (td ([style "width: 30%"])(h1 "Students:"))
-                                                 (td (span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
-                                                     (span ([style "background-color:#2196F3; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Awaiting locker")
-                                                 (td ([style "width: 30%"])(img ((style "max-width:30%;height:auto;float:right")(src "students.jpg"))))))
+                (table ((style "width:100%"))
+                       (tr (td ([style "width: 30%"])(h1 "Students:"))
+                           (td (span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
+                               (span ([style "background-color:#2196F3; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Awaiting locker")
+                           (td ([style "width: 30%"])(img ((style "max-width:30%;height:auto;float:right")(src "students.jpg"))))))
                 ,(if (and (zero? student-count) filtered?)                                             
                      `(p "No results found according to filter settings.")
                      `(p "Total results:" ,(if filtered? (number->string student-count) (number->string (length (all-students a-db))))))
@@ -311,7 +288,9 @@
       (td ,(checkmark "id" id-value "" all-checked))     
       (td ,(number->string an-id))
       (td ,(student-name a-db an-id) (br)
-          (p ([style "font-size: smaller"]) ,(substring (student-email a-db an-id) 0 10) "...")) ;sample emails too long, mess up css
+          (p ([style "font-size: smaller"])
+;             ,(student-email a-db an-id)
+             ,(substring (student-email a-db an-id) 0 10) "...")) ;sample emails too long, mess up css
       (td (span ([style ,(string-append (cond [(student-assigned-locker? a-db an-id) "background-color:#86E660;"]
                                               [else "background-color:#2196F3;"])
                                         " height: 25px; width: 25px; border-radius: 50%; display: inline-block; ")])))      
@@ -757,8 +736,8 @@
 
   ;=-=-Handlers-=-=
   (define (confirm-handler request)   
-    (insert-student-locker a-db student-id locker-id "until tuesday")
-    (render-student-details a-db request)) ;maybe success page instead?
+    (insert-student-locker a-db student-id locker-id "single-assigned")
+    (render-student-details a-db request))
 
   (define (cancel-handler request)
     (render-student-details a-db request))
@@ -863,8 +842,8 @@
   
   (send/suspend/dispatch response-generator))
 
-;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Send Mail=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (send-mail-page a-db request)
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Send Email=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (send-email-page a-db request)
   
   (define email-type (cond ((exists-binding? 'mass-email (request-bindings request)) "Mass Student Email")
                            ((exists-binding? 'work-order (request-bindings request)) "Word Order")))  
@@ -878,17 +857,23 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h2 "Send mail")
+                (h2 "Send email")
                 
-                (button ([class ,(button-style-class)][form "mail"][type "submit"][name "send"]) "Send") (br)
+                (button ([class ,(button-style-class)][form "email"][type "submit"][name "send"]) "Send") (br)
                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
            
            (div ((class "w3-twothird w3-card-4"))
                 (h2 ,(string-append "New message - " email-type))
-                (form ([id "mail"][action ,(embed/url send-handler)][method "POST"])
+                (form ([id "email"][action ,(embed/url send-handler)][method "POST"])
                 (table ((class "w3-table w3-bordered"))
                        (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
-                       (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'work-order (request-bindings request)) "Locker repairs" "Mass email")]))))
+                       (tr (td "Subject: "
+                               (input ([type "text"]
+                                       [name "subject"]
+                                       [id "subject"]
+                                       [value ,(if (exists-binding? 'work-order (request-bindings request))
+                                                   "Locker repairs"
+                                                   "Mass email")]))))
                        (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
                                          ,email-body)))))))))
                                                          

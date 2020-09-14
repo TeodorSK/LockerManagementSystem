@@ -18,7 +18,7 @@
         	student_locker_id	INTEGER,
         	student_id      	INTEGER UNIQUE,
         	locker_id       	INTEGER UNIQUE,
-        	valid_until     	TEXT,
+        	admin_note     	TEXT,
         	PRIMARY KEY(student_locker_id AUTOINCREMENT),
         	FOREIGN KEY(student_id) REFERENCES students(id),
         	FOREIGN KEY(locker_id) REFERENCES lockers(id))"))
@@ -289,30 +289,17 @@
     "SELECT lastname FROM students WHERE id = ?"
     id)))
 
-;returns #t/#f
 (define (student-assigned-locker? a-db id)
-  (define (exn-handler exn)
-    #f) ;if query null, return #f
-  (with-handlers ([exn? exn-handler])
-    (if (query-value
-         a-db
-         "SELECT 1 FROM student_locker WHERE student_id = ?"
-         id)
-        #t
-        #f
-        )))
+  (= 1 (query-value
+        a-db
+        "SELECT COUNT(1) FROM student_locker WHERE student_id = ?"
+        id)))
 
 (define (locker-assigned? a-db id)
-  (define (exn-handler exn)
-    #f)
-  (with-handlers ([exn? exn-handler])
-    (if (query-value
-         a-db
-         "SELECT 1 FROM student_locker WHERE locker_id = ?"
-         id)
-        #t
-        #f
-        )))
+  (= 1 (query-value
+        a-db
+        "SELECT COUNT(1) FROM student_locker WHERE locker_id = ?"
+        id)))
 
 (define (insert-student a-db id firstname lastname program email)
   (query-exec
@@ -335,11 +322,17 @@
    "INSERT INTO lockers (id, location, lock_id, is_broken) VALUES (?, ?, ?, ?)"
    id location lock-id is-broken))
 
-(define (insert-student-locker a-db student-id locker-id valid-until)
+(define (insert-student-locker a-db student-id locker-id admin-note)
   (query-exec
    a-db
-   "INSERT INTO student_locker (student_id, locker_id, valid_until) VALUES (?, ?, ?)"
-   student-id locker-id valid-until))
+   "INSERT INTO student_locker (student_id, locker_id, admin_note) VALUES (?, ?, ?)"
+   student-id locker-id admin-note))
+
+(define (release-student-locker a-db locker-id)
+  (query-exec
+   a-db
+   "DELETE FROM student_locker WHERE locker_id = ?"
+   locker-id))
 
 (define (add-locker-note a-db locker-id note note-author)
   (query-exec

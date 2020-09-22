@@ -19,7 +19,21 @@
 
 (define-runtime-path files-path "htdocs")                  
 
-(define (start request) (render-login-page request))
+(define (start request) (start-page request))
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (start-page request)
+  
+  (print "Incoming request: ")
+  (print request)
+
+  (set-username! "CAStest")
+  
+  ;admin or user?
+
+  (render-admin-dashboard request)
+
+  )
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-login-page request)
@@ -189,7 +203,6 @@
   ;=-=-Handlers-=-=
   (define (table-handler request)
     (cond ((exists-binding? 'release (request-bindings request))
-           (print (extract-bindings 'id (request-bindings request)))
            ((map (λ (locker) (release-student-locker a-db locker)) (extract-bindings 'id (request-bindings request)))
             (render-view-lockers a-db request)))
           ((exists-binding? 'locker-details-id (request-bindings request))
@@ -462,8 +475,8 @@
   (define-values (fname fcontents)
     (formlet-process file-upload-formlet request))
   ;Saves a local copy of the upload file under name "!uploaded-filename"
-  (define save-name (string-append "!uploaded-" fname));Maybe add timestamp?
-  (display-to-file fcontents (build-path files-path save-name) #:exists 'replace);Limit the number of saved local files?
+  (define save-name (string-append "!uploaded-" fname))
+  (display-to-file fcontents (build-path files-path save-name) #:exists 'replace)
 
   (define-values (locker-ids lock-ids) (extract-locker-lock-columns a-db (open-input-file (build-path files-path save-name))))
     
@@ -517,14 +530,14 @@
     (mass-assign-successful-page a-db request))
   
   (define (cancel-handler request)
-    (render-view-lockers (redirect/get) a-db))
+    (render-view-lockers a-db (redirect/get)))
   
   (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Locker details=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-locker-details a-db request)
   
-  (define locker-details-id (extract-binding/single 'locker-details-id (request-bindings request))) ;rename to locker-details-id
+  (define locker-details-id (extract-binding/single 'locker-details-id (request-bindings request)))
   
   (define (response-generator embed/url)
     (html-wrap
@@ -565,7 +578,7 @@
                                                          "None"
                                                          (form ([action ,(embed/url add-student-locker-handler)])
                                                                (label ((for "student-id")) "Student ID:")
-                                                               (input ([type "text"][id "student-id"][name "student-id"]))
+                                                               (input ([required "required"][type "text"][id "student-id"][name "student-id"]))
                                                                (input ([type "hidden"][id "locker-id"][name "locker-id"][value ,id]))
                                                                (input ([class ,(button-style-class)][type "submit"][value "Assign"])))))))
                  (tr (td (h3 "Locker status: ")) (td ((class "w3-right-align")) (form ([action ,(embed/url (if (locker-broken? a-db id) set-fixed-handler set-broken-handler))][method "PUT"])
@@ -582,7 +595,7 @@
                                             (form ([method "POST"][action ,(embed/url add-note-handler)])
                                                   (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
                                                   (input ([type "hidden"][id "note-author"][name "note-author"][value ,username]))
-                                                  (textarea ([style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
+                                                  (textarea ([required "required"][style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
                                                   (input ([class ,(button-style-class)][type "submit"][value "Add new note"])))))
                  )))
 
@@ -667,7 +680,7 @@
                                                   `(div
                                                     "No locker assigned"
                                                     (form ([action ,(embed/url add-student-locker-handler)])
-                                                          (input ([type "text"][id "locker-id"][name "locker-id"]))
+                                                          (input ([required "required"][type "text"][id "locker-id"][name "locker-id"]))
                                                           (input ([type "hidden"][id "student-id"][name "student-id"][value ,id]))
                                                           (input ([class ,(button-style-class)][type "submit"][value "Add locker"])))))))
                  (tr (td(h3 "Email:"))(td ((class "w3-right-align")) ,(student-email a-db id)))
@@ -717,33 +730,51 @@
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Confirm new student-locker=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (confirm-add-student-locker a-db request)
+
   
   (define locker-id (extract-binding/single 'locker-id (request-bindings request)))
   (define student-id (extract-binding/single 'student-id (request-bindings request)))
+
+  (define error-msg (cond ((not (locker-exists? a-db locker-id)) (string-append "Warning! The locker ID you entered doesn't exist in the database: " locker-id))
+                          ((not (student-exists? a-db student-id)) (string-append "Warning! The student ID you entered doesn't exist in the database: " student-id))
+                          ((student-assigned-locker? a-db student-id) (string-append "Warning! Selected student already has assigned locker: " student-id))
+                          ((locker-assigned? a-db locker-id) (string-append "Warning! Selected locker is already assigned: " locker-id))))
+
+  (define all-ok? (and (locker-exists? a-db locker-id)
+                           (student-exists? a-db student-id)
+                           (not (student-assigned-locker? a-db student-id))
+                           (not (locker-assigned? a-db locker-id))))
   
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
-                (h2 "Confirm locker assignment")                                  
-                ,(nav-button (embed/url confirm-handler) "Confirm"
-                             #:hidden-fields `(input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id])))                
+                (h2 "Confirm locker assignment")
+
+                ,(if all-ok?
+                (nav-button (embed/url confirm-handler) "Confirm"
+                             #:hidden-fields `(input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id])))
+                `(input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Confirm"))))
                 ,(nav-button (embed/url cancel-handler) "< Cancel"
                              #:hidden-fields `(input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))))
-           (div ((class "w3-twothird w3-card-4"))                 
-                (table ([class "w3-table w3-striped w3-bordered"])
+           (div ((class "w3-twothird w3-card-4"))                
+                ,(if all-ok?
+                `(table ([class "w3-table w3-striped w3-bordered"])
                        (th (h2 "Student Name"))(th (h2 "Locker ID"))
-                       (tr (td ,(student-name a-db student-id))(td ,locker-id)))                
+                       (tr (td ,(student-name a-db student-id))(td ,locker-id)))
+                `(div (img ((style "max-width:10%;height:auto;")(src "warning.png")))
+                      ,error-msg
+                      ))
                                 
                 ))))
 
   ;=-=-Handlers-=-=
   (define (confirm-handler request)   
     (insert-student-locker a-db student-id locker-id "single-assigned")
-    (render-student-details a-db request))
+    (render-view-students a-db (redirect/get)))
 
   (define (cancel-handler request)
-    (render-student-details a-db request))
+    (render-view-students a-db (redirect/get)))
   
   (send/suspend/dispatch response-generator))
   
@@ -971,15 +1002,17 @@ This message was automatically generated by the locker management system. For an
                  (string->number (getenv "PORT"))
                  8005))
 
+(define timeout-manager (create-timeout-manager
+                          (λ (r) (response/xexpr `(html (p "Session expired. Please go back to main page."))))
+                          3600
+                          3600))
+
 (serve/servlet start               
                #:quit? #f
                #:listen-ip #f
                #:port port
                #:server-root-path files-path               
-               #:manager (create-timeout-manager
-                          (λ (r) (response/xexpr `(html (p "Session expired. Please go back to main page."))))
-                          3600
-                          3600)
+               #:manager timeout-manager
                #:extra-files-paths (list files-path)                              
                #:servlet-path "/webapp.rkt")
                

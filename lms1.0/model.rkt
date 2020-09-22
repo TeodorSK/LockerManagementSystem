@@ -61,10 +61,12 @@
     (define student-lastname (list-ref a-row 2))
     (define student-program (list-ref a-row 3))
     (define student-email (list-ref a-row 4))
-    (if (unique-student-id? a-db student-id)
+    (if (and (unique-student-id? a-db student-id) (number? (string->number student-id)))
         (insert-student a-db student-id student-firstname student-lastname student-program student-email)
         (string-append "incorrect format (not unique or not int, str) - ID: " student-id)))
-  (map extract-student-data-from-row (list-tail (csv->list file) 1 ))) ;list-tail to chop of header row
+  
+;  (map extract-student-data-from-row (list-tail (csv->list file) 1 ));list-tail to chop of header row
+  (csv-map extract-student-data-from-row file)) 
 
 (define (unique-student-id? a-db student-id)
   (= 0 (query-value
@@ -164,6 +166,20 @@
    a-db
    "SELECT email FROM students WHERE id = ?"
    id))
+
+(define (student-exists? a-db id)
+  (= 1 (query-value
+        a-db
+        "SELECT COUNT(1) FROM students WHERE id = ?"
+        id)))
+
+(define (locker-exists? a-db id)
+  (= 1 (query-value
+        a-db
+        "SELECT COUNT(1) FROM lockers WHERE id = ?"
+        id)))
+   
+   
 
 (define (locker-location a-db id)
   (query-value

@@ -33,8 +33,8 @@
   
   ;admin or user?
   (if (exists-binding? 'cas-employeenumber (request-headers request))
-  (render-admin-dashboard request)
-  (render-student-dashboard request))
+  (render-student-dashboard request)
+  (render-admin-dashboard request))
 
   )
 

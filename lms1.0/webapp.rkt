@@ -24,14 +24,17 @@
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (start-page request)
   
-  (print "Incoming request: ")
-  (print request)
+  (define username (extract-binding/single 'cas-user (request-headers request)))
+  (define firstname (extract-binding/single 'cas-firstname (request-headers request)))
+  
 
-  (set-username! "CAStest")
+  ;(set-username! "CAStest")
+  (set-username! firstname)
   
   ;admin or user?
-
+  (if (exists-binding? 'cas-employeenumber (request-headers request))
   (render-admin-dashboard request)
+  (render-student-dashboard request))
 
   )
 

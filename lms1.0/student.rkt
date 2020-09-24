@@ -81,13 +81,13 @@
 
           ;Otherwise render this
           `(table ([class "w3-table w3-striped w3-bordered"])
-                 (tr (td (h3 "Locker ID:"))(td ((class "w3-right-align")) (p ,locker-id)))                 
+                 (tr (td (h3 "Locker ID:"))(td ((class "w3-right-align")) (p ,(number->string locker-id))))                 
                  (tr (td (h3 "Locker Location:"))(td ((class "w3-right-align")) ,(locker-location a-db locker-id)))
                  (tr (td (h3 "Lock #:"))
-;                     (td ((class "w3-right-align"))
-;                                            ,(if (locker-has-lock? a-db id)                             
-;                                                 `(div ,(number->string (lock-id a-db id)))
-;                                                 `(div "No Lock Assigned!"))))                 
+                     (td ((class "w3-right-align"))
+                                            ,(if (locker-has-lock? a-db locker-id)                             
+                                                 `(div ,(number->string (lock-id a-db locker-id)))
+                                                 `(div "No Lock Assigned!"))))                 
                  (tr (td (h3 "Locker status: "))
                      (td ((class "w3-right-align")) (form ([action ,(embed/url report-issue-handler)][method "PUT"])
 ;                                                                                          (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,locker-id]))

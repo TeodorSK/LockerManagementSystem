@@ -9,14 +9,21 @@
 (require "model.rkt")
 (provide (all-defined-out))
 
+(define student-firstname "NoneS")
+(define student-id "0")
+
 (define-runtime-path files-path "htdocs")
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
+
+  (set! student-firstname (extract-binding/single 'cas-firstname (request-headers request)))  
+  (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
+  
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
-                (h3 (string-append "Welcome back, Student"))
+                (h3 (string-append "Welcome back" ,student-firstname))
 
                 ,(nav-button (embed/url my-locker-handler) "My Locker")
                 ,(nav-button (embed/url my-profile-handler) "My Profile")                
@@ -40,14 +47,15 @@
 (define (render-my-locker a-db request)
 
   ;TODO replace with queries
-  (define id (number->string 1093))
-  (define student-details-id (number->string 3974133))
+  (define id (number->string 1093)) ;students locker
+  (define locker-id (if (student-assigned-locker? a-db student-id) (students-locker-id a-db id) "0"))
+;  (define student-details-id (number->string 3974133))
   
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
-                (h3 (string-append "Welcome back, Student"))
+                (h3 (string-append "Welcome back" ,student-firstname))
 
                 ,(nav-button (embed/url my-locker-handler) "My Locker")
                 ,(nav-button (embed/url my-profile-handler) "My Profile")                
@@ -65,14 +73,15 @@
     `(div ((class "w3-white"))           
 
           ;Only render this if no locker assigned
-          (form ([action ,(embed/url request-locker-handler)])
-                (input ([type "hidden"][name "student-details-id"][value ,student-details-id]))
+          ,(if (student-assigned-locker? a-db student-id)
+          `(form ([action ,(embed/url request-locker-handler)])
+;                (input ([type "hidden"][name "student-id"][value ,student-id]))
                 (button ([class ,(button-style-class)][type "submit"][name "locker-request"]) "Request new locker"))
 
           ;Otherwise render this
-          (table ([class "w3-table w3-striped w3-bordered"])
-                 (tr (td (h3 "Locker ID:"))(td ((class "w3-right-align")) (p ,id)))                 
-                 (tr (td (h3 "Locker Location:"))(td ((class "w3-right-align")) ,(locker-location a-db id)))
+          `(table ([class "w3-table w3-striped w3-bordered"])
+                 (tr (td (h3 "Locker ID:"))(td ((class "w3-right-align")) (p ,locker-id)))                 
+                 (tr (td (h3 "Locker Location:"))(td ((class "w3-right-align")) ,(locker-location a-db locker-id)))
                  (tr (td (h3 "Lock #:"))
 ;                     (td ((class "w3-right-align"))
 ;                                            ,(if (locker-has-lock? a-db id)                             
@@ -80,12 +89,18 @@
 ;                                                 `(div "No Lock Assigned!"))))                 
                  (tr (td (h3 "Locker status: "))
                      (td ((class "w3-right-align")) (form ([action ,(embed/url report-issue-handler)][method "PUT"])
-                                                                                          (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
+;                                                                                          (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,locker-id]))
                                                                                           (input ([class ,(button-style-class)][type "submit"][name "report-issue"][value "Report issue"])))))
                                                                                            
-                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align")) ""))))))
-                 
+                 (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
+                                            ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (locker-notes a-db locker-id)))))))))
+                                            
 
+  (define (format-notes note-id embed/url)
+    `(div ([class "w3-border w3-padding w3-pale-yellow"])
+          (div ([class "note-user"]) ,(locker-note-author a-db note-id))
+          (div ([class "note-content"]) ,(locker-note-content a-db note-id))))
+                          
   ;=-=-Handlers-=-=
   (define (request-locker-handler request)
     (student-send-mail-page a-db request))
@@ -104,13 +119,13 @@
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-My Profile=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-my-profile a-db request)
   
-  (define student-details-id (number->string 3974133))
+;  (define student-id (number->string 3974133))
   
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
-                (h3 (string-append "Welcome back, Student"))
+                (h3 (string-append "Welcome back" ,student-firstname))
 
                 ,(nav-button (embed/url my-locker-handler) "My Locker")
                 ,(nav-button (embed/url my-profile-handler) "My Profile")                
@@ -119,16 +134,16 @@
            (div ((class "w3-twothird w3-card-4"))
                 (h1 "My Profile Details:")
 
-                ,(display-student-info student-details-id embed/url)
+                ,(display-student-info student-id embed/url)
                                 
                 ))))
 
   (define (display-student-info id embed/url)            
     `(div ((class "w3-white"))
           (table ([class "w3-table w3-striped w3-bordered"])
-                 (tr (td  (h2 "Student ID:"))(td ((class "w3-right-align")) (h3 ,id)))  
-                 (tr (td (h3 "Student Name:"))(td ((class "w3-right-align")) ,(student-name a-db id)))                 
-                 (tr (td(h3 "Email:"))(td ((class "w3-right-align")) ,(student-email a-db id)))
+                 (tr (td  (h2 "Student ID:"))(td ((class "w3-right-align")) (h3 ,student-id)))  
+                 (tr (td (h3 "Student Name:"))(td ((class "w3-right-align")) ,(student-name a-db student-id)))                 
+                 (tr (td(h3 "Email:"))(td ((class "w3-right-align")) ,(student-email a-db student-id)))
                  (tr (td(h3 "Notes:"))(td ((class "w3-right-align")) "")))
           (p "Any questions/concerns? Email admin@admin.ca")))
 
@@ -144,8 +159,9 @@
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Send mail=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (student-send-mail-page a-db request)
 
-  (define locker-details-id (extract-bindings-safely 'locker-details-id "" request))
-  (define student-details-id (extract-bindings-safely 'student-details-id "" request))
+;  (define locker-details-id (extract-bindings-safely 'locker-details-id "" request))
+  (define locker-id (if (student-assigned-locker? a-db student-id) (students-locker-id a-db student-id) "0"))
+;  (define student-id (extract-bindings-safely 'student-id "" request))
 
   (define email-type (cond ((exists-binding? 'locker-request (request-bindings request)) "Request for new locker")
                            ((exists-binding? 'report-issue (request-bindings request)) "Report an issue")))
@@ -171,8 +187,8 @@
                                          ,email-body)))))))))
 
   (define email-body
-    (cond ((exists-binding? 'locker-request (request-bindings request)) (string-append "I want a new locker. My student # is " student-details-id))
-          ((exists-binding? 'report-issue (request-bindings request)) (string-append "Issue with my locker. My locker # is " locker-details-id))))
+    (cond ((exists-binding? 'locker-request (request-bindings request)) (string-append "I want a new locker. My student # is " student-id))
+          ((exists-binding? 'report-issue (request-bindings request)) (string-append "Issue with my locker. My locker # is " locker-id))))
                 
            
   ;=-=-Handlers-=-=
@@ -181,9 +197,9 @@
 
   (define (send-handler request)
     (smtp-send-message "localhost"
-                   "student@racket.cs.ryerson.ca" ;Current student email
-                   (list "tsandelkonjevic@ryerson.ca") ;Admin email
-                   (standard-message-header "student@racket.cs.ryerson.ca" ;Current student email
+                   (student-email a-db student-id) ;Current students email
+                   (list "tsandelkonjevic@ryerson.ca") ;Admin email TODO: change to alinas
+                   (standard-message-header (student-email a-db student-id) ;Current student email
                                             (list "tsandelkonjevic@ryerson.ca") ;to
                                             (list) ;cc
                                             (list) ;bcc
@@ -192,6 +208,7 @@
                                             (extract-binding/single 'subject (request-bindings request)))
                    (list (extract-binding/single 'body (request-bindings request)))
                    #:port-no 25)
+
     
     (render-student-dashboard (redirect/get) a-db))
   

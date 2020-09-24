@@ -12,71 +12,72 @@
 
 (require "model.rkt")
 (require "student.rkt")
-(require "userinfo.rkt")
+;(require "userinfo.rkt")
 
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
 
 (define-runtime-path files-path "htdocs")
 
-(define username "None")
+(define admin-firstname "None")
 
 (define (start request) (start-page request))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (start-page request)
-  
-  (define username (extract-binding/single 'cas-user (request-headers request)))
-  (define firstname (extract-binding/single 'cas-firstname (request-headers request)))
+(define (start-page request)  
   
   (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
-  (print activeclasses)
-
-  (set! username firstname)
-  ;mine is:
-  ;("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
-
   
+;  (print activeclasses)  
+;  mine is:
+;  ("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
+
   (if (member "staff" activeclasses)
-  (render-admin-dashboard request) ;if staff, also check local record, if not there, help contact page
-  (render-student-dashboard request));if student, also check database, if not there, help contact page
+      
+      (;if staff, also check local record, if not there, help contact page
+       (set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
+       (render-admin-dashboard request))
+      
+      (;if student, also check database, if not there, help contact page
+       (render-student-dashboard request)))
 
   )
 
+;OBSOLETE
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (render-login-page request)
-  (define (response-generator embed/url)
-    (html-wrap
-     `(div ((class "w3-row-padding"))
-
-           (div ((class "w3-card-4 w3-white w3-center"))
-                (img ((style "max-width:50%;height:auto;")(src "ryerson_logo.png")))
-                                                 
-                (table (tr (td (form ([action ,(embed/url login-handler)][method "GET"])
-                                     (div ((style "text-align:center"))
-                                          (label ((for "uname")) "Username") (br)
-                                          (input ((type "text")(placeholder "Enter Username")(name "uname"))) (br)
-                                          (label ((for "psw")) "Password") (br)
-                                          (input ((type "password")(placeholder "Enter Password")(name "psw"))) (br)
-                                       
-                                          (input ([class ,(button-style-class)][type "submit"] [value "Login"]))(br)
-                                          (label (input ((type "checkbox")(checked "checked")(name "remember"))" Remember me")))))
-                           (td (h1 ((style "text-align:center"))"Ryerson Locker Management System")
-                               (img ((style "max-width:70%;height:auto;display: block; margin-left: auto; margin-right: auto; width: 50%;")
-                                     (src "kerr_hall.jpg"))))))))))                                                                                            
-
-  ;=-=-Handlers-=-=
-  (define (login-handler request)
-    
-    (define user-type (extract-bindings-safely 'uname "admin" request)) ;Make ryerson login call here
-
-    (set-username! (extract-bindings-safely 'uname "admin" request)) 
-    
-    (cond ((equal? user-type "admin") (render-admin-dashboard request))
-          ((equal? user-type "student") (render-student-dashboard request))
-          (else (render-admin-dashboard request))))
-  
-  (send/suspend/dispatch response-generator))
+;(define (render-login-page request)
+;  (define (response-generator embed/url)
+;    (html-wrap
+;     `(div ((class "w3-row-padding"))
+;
+;           (div ((class "w3-card-4 w3-white w3-center"))
+;                (img ((style "max-width:50%;height:auto;")(src "ryerson_logo.png")))
+;                                                 
+;                (table (tr (td (form ([action ,(embed/url login-handler)][method "GET"])
+;                                     (div ((style "text-align:center"))
+;                                          (label ((for "uname")) "admin-firstname") (br)
+;                                          (input ((type "text")(placeholder "Enter admin-firstname")(name "uname"))) (br)
+;                                          (label ((for "psw")) "Password") (br)
+;                                          (input ((type "password")(placeholder "Enter Password")(name "psw"))) (br)
+;                                       
+;                                          (input ([class ,(button-style-class)][type "submit"] [value "Login"]))(br)
+;                                          (label (input ((type "checkbox")(checked "checked")(name "remember"))" Remember me")))))
+;                           (td (h1 ((style "text-align:center"))"Ryerson Locker Management System")
+;                               (img ((style "max-width:70%;height:auto;display: block; margin-left: auto; margin-right: auto; width: 50%;")
+;                                     (src "kerr_hall.jpg"))))))))))                                                                                            
+;
+;  ;=-=-Handlers-=-=
+;  (define (login-handler request)
+;    
+;    (define user-type (extract-bindings-safely 'uname "admin" request)) ;Make ryerson login call here
+;
+;    (set-admin-firstname! (extract-bindings-safely 'uname "admin" request)) 
+;    
+;    (cond ((equal? user-type "admin") (render-admin-dashboard request))
+;          ((equal? user-type "student") (render-student-dashboard request))
+;          (else (render-admin-dashboard request))))
+;  
+;  (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Admin dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-admin-dashboard request [a-db (init-db! (build-path files-path "database.db"))]) 
@@ -85,7 +86,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,username))
+                (h3 (string-append "Welcome back, " ,admin-firstname))
                 ;userinfo.rkt test
 
                 (h4 "View")                                 
@@ -149,7 +150,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,username))
+                (h3 (string-append "Welcome back, " ,admin-firstname))
 
                 (h3 "Filters:")
                 (form ([id "filters"][action ,(embed/url filter-handler)][method "GET"])                      
@@ -258,7 +259,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,username))
+                (h3 (string-append "Welcome back, " ,admin-firstname))
 
 
                 (h3 "Filters:")
@@ -552,7 +553,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,username))
+                (h3 (string-append "Welcome back, " ,admin-firstname))
                                  
                 ,(nav-button (embed/url view-lockers-handler) "< Locker view")
                 )
@@ -602,7 +603,7 @@
                                             ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (locker-notes a-db id))
                                             (form ([method "POST"][action ,(embed/url add-note-handler)])
                                                   (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
-                                                  (input ([type "hidden"][id "note-author"][name "note-author"][value ,username]))
+                                                  (input ([type "hidden"][id "note-author"][name "note-author"][value ,admin-firstname]))
                                                   (textarea ([required "required"][style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
                                                   (input ([class ,(button-style-class)][type "submit"][value "Add new note"])))))
                  )))
@@ -661,7 +662,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,username))
+                (h3 (string-append "Welcome back, " ,admin-firstname))
                 
                 ,(nav-button (embed/url view-students-handler) "< Student view"))
                                                         
@@ -696,7 +697,7 @@
                                             ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (student-notes a-db id))
                                             (form ([method "POST"][action ,(embed/url add-note-handler)])
                                                   (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,id]))
-                                                  (input ([type "hidden"][id "note-author"][name "note-author"][value ,username]))
+                                                  (input ([type "hidden"][id "note-author"][name "note-author"][value ,admin-firstname]))
                                                   (textarea ([style "resize: none;"][rows "4"][cols "40"][id "new-note"][name "new-note"]))
                                                   (input ([class ,(button-style-class)][type "submit"][value "Add new note"]))))))))
 

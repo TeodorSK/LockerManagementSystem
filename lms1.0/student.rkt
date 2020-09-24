@@ -65,7 +65,7 @@
            (div ((class "w3-twothird w3-card-4"))
                 (h1 "My Locker Details:")
 
-                ,(display-locker-info id embed/url)
+                ,(display-locker-info locker-id embed/url)
                                 
                 ))))
 

@@ -48,8 +48,8 @@
 (define (render-my-locker a-db request)
 
   ;TODO replace with queries
-  (define id (number->string 1093)) ;students locker
-  (define locker-id (if (student-assigned-locker? a-db student-id) (students-locker-id a-db id) "0"))
+;  (define id (number->string 1093)) ;students locker
+  (define locker-id (if (student-assigned-locker? a-db student-id) (students-locker-id a-db student-id) "0"))
 ;  (define student-details-id (number->string 3974133))
   
   (define (response-generator embed/url)

@@ -9,21 +9,22 @@
 (require "model.rkt")
 (provide (all-defined-out))
 
-(define student-firstname "NoneS")
+;(define student-firstname "NoneS")
 (define student-id "0")
+(define student-fname "NoneS")
 
 (define-runtime-path files-path "htdocs")
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
 
-  (set! student-firstname (extract-binding/single 'cas-firstname (request-headers request)))  
+;  (set! student-fname (extract-binding/single 'cas-firstname (request-headers request)))  
   (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
   
   (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
-                (h3 (string-append "Welcome back" ,student-firstname))
+                (h3 (string-append "Welcome back" ,student-fname))
 
                 ,(nav-button (embed/url my-locker-handler) "My Locker")
                 ,(nav-button (embed/url my-profile-handler) "My Profile")                
@@ -55,7 +56,7 @@
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
-                (h3 (string-append "Welcome back" ,student-firstname))
+                (h3 (string-append "Welcome back" ,student-fname))
 
                 ,(nav-button (embed/url my-locker-handler) "My Locker")
                 ,(nav-button (embed/url my-profile-handler) "My Profile")                
@@ -125,7 +126,7 @@
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))                
-                (h3 (string-append "Welcome back" ,student-firstname))
+                (h3 (string-append "Welcome back" ,student-fname))
 
                 ,(nav-button (embed/url my-locker-handler) "My Locker")
                 ,(nav-button (embed/url my-profile-handler) "My Profile")                

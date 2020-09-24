@@ -17,8 +17,11 @@
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
 
-;  (set! student-fname (extract-binding/single 'cas-firstname (request-headers request)))  
+
   (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
+
+;  (set! student-fname (extract-binding/single 'cas-firstname (request-headers request)))
+  (set! student-fname (student-firstname a-db student-id))
   
   (define (response-generator embed/url)
     (html-wrap

@@ -94,7 +94,7 @@
                                                                                           (input ([class ,(button-style-class)][type "submit"][name "report-issue"][value "Report issue"])))))
                                                                                            
                  (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
-                                            ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (locker-notes a-db locker-id)))))))))
+                                            ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (locker-notes a-db locker-id))))))))
                                             
 
   (define (format-notes note-id embed/url)

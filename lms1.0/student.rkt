@@ -74,7 +74,7 @@
     `(div ((class "w3-white"))           
 
           ;Only render this if no locker assigned
-          ,(if (student-assigned-locker? a-db student-id)
+          ,(if (not (student-assigned-locker? a-db student-id))
           `(form ([action ,(embed/url request-locker-handler)])
 ;                (input ([type "hidden"][name "student-id"][value ,student-id]))
                 (button ([class ,(button-style-class)][type "submit"][name "locker-request"]) "Request new locker"))
@@ -145,8 +145,8 @@
                  (tr (td  (h2 "Student ID:"))(td ((class "w3-right-align")) (h3 ,student-id)))  
                  (tr (td (h3 "Student Name:"))(td ((class "w3-right-align")) ,(student-name a-db student-id)))                 
                  (tr (td(h3 "Email:"))(td ((class "w3-right-align")) ,(student-email a-db student-id)))
-                 (tr (td(h3 "Notes:"))(td ((class "w3-right-align")) "")))
-          (p "Any questions/concerns? Email admin@admin.ca")))
+                 (tr (td(h3 "Notes:"))(td ((class "w3-right-align")) "")))))
+          
 
   ;=-=-Handlers-=-=
   (define (my-locker-handler request)

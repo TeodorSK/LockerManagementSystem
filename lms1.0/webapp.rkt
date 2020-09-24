@@ -27,7 +27,10 @@
   (define username (extract-binding/single 'cas-user (request-headers request)))
   (define firstname (extract-binding/single 'cas-firstname (request-headers request)))
   
-
+  (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
+  (print activeclasses)
+  
+  
   ;(set-username! "CAStest")
   (set-username! firstname)
   

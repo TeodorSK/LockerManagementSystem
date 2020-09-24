@@ -17,7 +17,9 @@
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
 
-(define-runtime-path files-path "htdocs")                  
+(define-runtime-path files-path "htdocs")
+
+(define username "None")
 
 (define (start request) (start-page request))
 
@@ -29,15 +31,15 @@
   
   (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
   (print activeclasses)
+
+  (set! username firstname)
+  ;mine is:
+  ;("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
+
   
-  
-  ;(set-username! "CAStest")
-  (set-username! firstname)
-  
-  ;admin or user?
-  (if (exists-binding? 'cas-employeenumber (request-headers request))
-  (render-student-dashboard request)
-  (render-admin-dashboard request))
+  (if (member "staff" activeclasses)
+  (render-admin-dashboard request) ;if staff, also check local record, if not there, help contact page
+  (render-student-dashboard request));if student, also check database, if not there, help contact page
 
   )
 

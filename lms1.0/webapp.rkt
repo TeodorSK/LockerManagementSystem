@@ -317,7 +317,8 @@
 ;             ,(student-email a-db an-id)
              ,(substring (student-email a-db an-id) 0 10) "...")) ;sample emails too long, mess up css
       (td (span ([style ,(string-append (cond [(student-assigned-locker? a-db an-id) "background-color:#86E660;"]
-                                              [(student-awaiting-locker? a-db an-id) "background-color:#2196F3;"])
+                                              [(student-awaiting-locker? a-db an-id) "background-color:#2196F3;"]
+                                              [else ""])
                                         " height: 25px; width: 25px; border-radius: 50%; display: inline-block; ")])))      
       (td (form ([id "details"][action ,(embed/url view-student-details-handler)])
                 (button ([class ,(button-style-class)][form "table"][type "submit"][name "student-details-id"][value ,id-value]) "Details")))))

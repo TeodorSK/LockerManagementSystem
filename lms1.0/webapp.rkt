@@ -23,6 +23,9 @@
 
 (define (start request) (start-page request))
 
+;Local env
+;(define (start request) (render-login-page request))
+
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (start-page request)  
   
@@ -34,7 +37,7 @@
 
   (if (member "staff" activeclasses)
       
-      (;if staff, also check local record, if not there, help contact page
+      (;if staff, also check local record, if not there, help contact page 
        (set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
        (render-admin-dashboard request))
       
@@ -43,8 +46,8 @@
 
   )
 
-;OBSOLETE
-;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;;OBSOLETE - only used for local login testing
+;;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ;(define (render-login-page request)
 ;  (define (response-generator embed/url)
 ;    (html-wrap
@@ -53,7 +56,7 @@
 ;           (div ((class "w3-card-4 w3-white w3-center"))
 ;                (img ((style "max-width:50%;height:auto;")(src "ryerson_logo.png")))
 ;                                                 
-;                (table (tr (td (form ([action ,(embed/url login-handler)][method "GET"])
+;                (table (tr (td (form ([action ,(embed/url admin-login-handler)][method "GET"])
 ;                                     (div ((style "text-align:center"))
 ;                                          (label ((for "uname")) "admin-firstname") (br)
 ;                                          (input ((type "text")(placeholder "Enter admin-firstname")(name "uname"))) (br)
@@ -63,20 +66,17 @@
 ;                                          (input ([class ,(button-style-class)][type "submit"] [value "Login"]))(br)
 ;                                          (label (input ((type "checkbox")(checked "checked")(name "remember"))" Remember me")))))
 ;                           (td (h1 ((style "text-align:center"))"Ryerson Locker Management System")
-;                               (img ((style "max-width:70%;height:auto;display: block; margin-left: auto; margin-right: auto; width: 50%;")
-;                                     (src "kerr_hall.jpg"))))))))))                                                                                            
+;                               (form ([action ,(embed/url student-login-handler)][method "GET"])
+;                                     (input ([type "text"][value "500791082"][name "cas-studentnumber"]))
+;                                     (input ([type "submit"][value "login as student"])))
+;                               )))))))                                                                                            
 ;
 ;  ;=-=-Handlers-=-=
-;  (define (login-handler request)
-;    
-;    (define user-type (extract-bindings-safely 'uname "admin" request)) ;Make ryerson login call here
+;  (define (student-login-handler request)
+;    (render-student-dashboard request))
 ;
-;    (set-admin-firstname! (extract-bindings-safely 'uname "admin" request)) 
-;    
-;    (cond ((equal? user-type "admin") (render-admin-dashboard request))
-;          ((equal? user-type "student") (render-student-dashboard request))
-;          (else (render-admin-dashboard request))))
-;  
+;  (define (admin-login-handler request)
+;    (render-admin-dashboard request))     
 ;  (send/suspend/dispatch response-generator))
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Admin dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -317,7 +317,7 @@
 ;             ,(student-email a-db an-id)
              ,(substring (student-email a-db an-id) 0 10) "...")) ;sample emails too long, mess up css
       (td (span ([style ,(string-append (cond [(student-assigned-locker? a-db an-id) "background-color:#86E660;"]
-                                              [else "background-color:#2196F3;"])
+                                              [(student-awaiting-locker? a-db an-id) "background-color:#2196F3;"])
                                         " height: 25px; width: 25px; border-radius: 50%; display: inline-block; ")])))      
       (td (form ([id "details"][action ,(embed/url view-student-details-handler)])
                 (button ([class ,(button-style-class)][form "table"][type "submit"][name "student-details-id"][value ,id-value]) "Details")))))

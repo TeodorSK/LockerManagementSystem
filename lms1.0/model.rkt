@@ -10,7 +10,7 @@
     (query-exec db "CREATE TABLE lockers (id INTEGER PRIMARY KEY, location TEXT, lock_id INTEGER, is_broken BIT)"))
   ;Create Students Table
   (unless (table-exists? db "students")
-    (query-exec db "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT)"))
+    (query-exec db "CREATE TABLE students (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT, program TEXT, email TEXT, requested_locker INTEGER)"))
   ;Create Student_locker table
   (unless (table-exists? db "student_locker")
     (query-exec db
@@ -317,11 +317,11 @@
         "SELECT COUNT(1) FROM student_locker WHERE locker_id = ?"
         id)))
 
-(define (insert-student a-db id firstname lastname program email)
+(define (insert-student a-db id firstname lastname program email [requested-locker 0])
   (query-exec
    a-db
-   "INSERT INTO students (id, firstname, lastname, program, email) VALUES (?, ?, ?, ? ,?)"  
-   id firstname lastname program email))
+   "INSERT INTO students (id, firstname, lastname, program, email, requested_locker) VALUES (?, ?, ?, ? , ?, ?)"  
+   id firstname lastname program email requested-locker))
 
 (define (mass-assign-get-lockers a-db students) ;(listof student-id) -> (listof locker-id)
   (take (query-list
@@ -338,11 +338,28 @@
    "INSERT INTO lockers (id, location, lock_id, is_broken) VALUES (?, ?, ?, ?)"
    id location lock-id is-broken))
 
-(define (insert-student-locker a-db student-id locker-id admin-note)
+(define (insert-student-locker a-db student-id locker-id admin-note) ;assign locker and set requested_locker flag to 0
   (query-exec
    a-db
    "INSERT INTO student_locker (student_id, locker_id, admin_note) VALUES (?, ?, ?)"
-   student-id locker-id admin-note))
+   student-id locker-id admin-note)
+  (query-exec
+   a-db
+   "UPDATE students SET requested_locker = 0 WHERE id = ?"
+   student-id))
+  
+
+(define (student-request-locker a-db student-id) ;set requested_locker flag to 1
+  (query-exec
+   a-db
+   "UPDATE students SET requested_locker = 1 WHERE id = ?"
+   student-id))
+
+(define (student-awaiting-locker? a-db student-id) ;did student request locker?
+  (query-value
+   a-db
+   "SELECT COUNT(1) FROM students WHERE requested_locker = 1 AND id = ?"
+   student-id))
 
 (define (release-student-locker a-db locker-id)
   (query-exec

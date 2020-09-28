@@ -184,6 +184,8 @@
            (div ((class "w3-twothird w3-card-4"))
                 (h2 ,(string-append "New message - " email-type))
                 (form ([id "mail"][action ,(embed/url send-handler)][method "POST"])
+                      (input ([type "hidden"][name ,(cond ((exists-binding? 'locker-request (request-bindings request)) "locker-request")
+                                                          ((exists-binding? 'report-issue (request-bindings request)) "report-issue"))][value "1"]))
                 (table ((class "w3-table w3-bordered"))
 ;                       (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
                        (tr (td "Subject: " (input ([type "text"][name "subject"][id "subject"][value ,(if (exists-binding? 'locker-request (request-bindings request)) "New locker request" "Issue with locker")]))))

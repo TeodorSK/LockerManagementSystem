@@ -356,10 +356,10 @@
    student-id))
 
 (define (student-awaiting-locker? a-db student-id) ;did student request locker?
-  (query-value
+  (= 1 (query-value
    a-db
    "SELECT COUNT(1) FROM students WHERE requested_locker = 1 AND id = ?"
-   student-id))
+   student-id)))
 
 (define (release-student-locker a-db locker-id)
   (query-exec

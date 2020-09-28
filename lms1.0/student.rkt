@@ -200,6 +200,11 @@
     (render-student-dashboard (redirect/get) a-db))
 
   (define (send-handler request)
+    
+    (cond ((exists-binding? 'locker-request (request-bindings request))
+           (print "requesting locker")
+           (student-request-locker a-db student-id)))
+    
     (smtp-send-message "localhost"
                    (student-email a-db student-id) ;Current students email - TODO: is this ok to be @ryerson? allows alina to reply easily, gmail complains abt security
                    (list "tsandelkonjevic@ryerson.ca") ;Admin email TODO: change to alinas
@@ -213,7 +218,7 @@
                    (list (extract-binding/single 'body (request-bindings request)))
                    #:port-no 25)
 
-    (cond ((exists-binding? 'locker-request (request-bindings request)) (student-request-locker a-db student-id)))
+    
     
     (render-student-dashboard (redirect/get) a-db))
   

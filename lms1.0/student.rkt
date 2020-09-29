@@ -17,7 +17,7 @@
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (student-start request [a-db (init-db! (build-path files-path "database.db"))])
-  (print (extract-binding/single 'cas-studentnumber (request-headers request)))
+  (print (string->number (extract-binding/single 'cas-studentnumber (request-headers request))))
   (print (all-students a-db))
   (if (not (member (extract-binding/single 'cas-studentnumber (request-headers request)) (all-students a-db)))
       (response/xexpr

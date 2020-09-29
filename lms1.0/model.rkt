@@ -66,7 +66,11 @@
         (string-append "incorrect format (not unique or not int, str) - ID: " student-id)))
   
 ;  (map extract-student-data-from-row (list-tail (csv->list file) 1 ));list-tail to chop of header row
-  (csv-map extract-student-data-from-row file)) 
+  (csv-map extract-student-data-from-row file))
+
+(define (is-admin? id auth-file)  
+  (print (csv->list auth-file))   
+  )
 
 (define (unique-student-id? a-db student-id)
   (= 0 (query-value

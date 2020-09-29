@@ -31,14 +31,14 @@
   
   (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
   
-;  (print activeclasses)
-  (print (extract-binding/single 'cas-employeeid (request-headers request)))
+;  (print activeclasses)  
 ;  mine is:
 ;  ("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
 
   (if (member "staff" activeclasses)
       
-      (;if staff, also check local record, if not there, help contact page 
+      (;if staff, also check local record, if not there, help contact page
+       (is-admin? (extract-binding/single 'cas-employeeid (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
        (set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
        (render-admin-dashboard request))
       

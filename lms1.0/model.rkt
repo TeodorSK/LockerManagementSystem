@@ -69,7 +69,7 @@
   (csv-map extract-student-data-from-row file))
 
 (define (is-admin? id auth-file)
-  (define admin-list (csv->list auth-file))
+  (define admin-list (first (csv->list auth-file)))
   (if (member id admin-list) #t #f))
   
 

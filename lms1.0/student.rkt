@@ -15,17 +15,24 @@
 
 (define-runtime-path files-path "htdocs")
 
+
+;(define (admin-unauth-page request)
+;  (response/xexpr
+;   `(html (p "Error: You are trying to access the admin dashboard, but you are not an authorized administrator. If you believe this is an error please contact tsandelkonjevic [at] ryerson [dot] ca"))))
+
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (student-start request [a-db (init-db! (build-path files-path "database.db"))])
   (print (string->number (extract-binding/single 'cas-studentnumber (request-headers request))))
   (print (all-students a-db))
   (if (not (member (string->number (extract-binding/single 'cas-studentnumber (request-headers request))) (all-students a-db)))
-      ((print "ur not in")
-       (response/xexpr
-       `(html (p "Error: You are trying to access the student dashboard, but your studentID wasn't found in the database. If you believe this is an error please contact alina [at] ryerson [dot] ca"))))
+      (student-unauth-page request)
       ((set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
        (render-student-dashboard request a-db))
       ))
+
+(define (student-unauth-page request)
+  (response/xexpr
+       `(html (p "Error: You are trying to access the student dashboard, but your studentID wasn't found in the database. If you believe this is an error please contact alina [at] ryerson [dot] ca"))))
   
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])

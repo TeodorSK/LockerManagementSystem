@@ -41,9 +41,8 @@
           ((set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
            (student-start request))
           (admin-unauth-page request))
-      
-      (;if student, also check database, if not there, help contact page
-       (student-start request)))
+            
+       (student-start request))
 
   )
 

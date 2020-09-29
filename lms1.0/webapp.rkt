@@ -31,7 +31,8 @@
   
   (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
   
-;  (print activeclasses)  
+;  (print activeclasses)
+  (print (extract-binding/single 'cas-employeeid (request-headers request)))
 ;  mine is:
 ;  ("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
 

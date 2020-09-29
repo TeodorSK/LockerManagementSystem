@@ -39,7 +39,7 @@
             
       (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
           ((set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
-           (render-admin-dashboard request))
+           (student-unauth-page request))
           (admin-unauth-page request))
             
        (student-start request))

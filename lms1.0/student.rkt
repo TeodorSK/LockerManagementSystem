@@ -35,7 +35,7 @@
 
 (define (student-unauth-page request)
   (response/xexpr
-       `(html (p "Error: You are trying to access the student dashboard, but your studentID wasn't found in the database. If you believe this is an error please contact alina [at] ryerson [dot] ca"))))
+   `(html (p "Error: You are trying to access the student dashboard, but you are not in the db. If you believe this is an error please contact alina [at] ryerson [dot] ca"))))
   
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])

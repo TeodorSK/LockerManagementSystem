@@ -16,8 +16,10 @@
 (define-runtime-path files-path "htdocs")
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (student-start request [a-db (init-db! (build-path files-path "database.db"))])  
-  (if (not (member student-id (all-students a-db)))
+(define (student-start request [a-db (init-db! (build-path files-path "database.db"))])
+  (print (extract-binding/single 'cas-studentnumber (request-headers request)))
+  (print (all-students a-db))
+  (if (not (member (extract-binding/single 'cas-studentnumber (request-headers request)) (all-students a-db)))
       (response/xexpr
        `(html (p "Error: You are trying to access the student dashboard, but your studentID wasn't found in the database. If you believe this is an error please contact alina [at] ryerson [dot] ca")))
       ((set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))

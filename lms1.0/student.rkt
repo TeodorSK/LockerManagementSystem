@@ -14,13 +14,21 @@
 (define student-fname "NoneS")
 
 (define-runtime-path files-path "htdocs")
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+(define (student-start request [a-db (init-db! (build-path files-path "database.db"))])
+  (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
+(if (not (member student-id (all-students a-db)))
+  (response/xexpr
+   `(html (p "Error: You are trying to access the student dashboard, but your studentID wasn't found in the database. If you believe this is an error please contact alina [at] ryerson [dot] ca")))
+  (render-student-dashboard request a-db)
+  ))
+  
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-student-dashboard request [a-db (init-db! (build-path files-path "database.db"))])
 
+  (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))        
 
-  (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
-
-;  (set! student-fname (extract-binding/single 'cas-firstname (request-headers request)))
   (set! student-fname (student-firstname a-db student-id))
   
   (define (response-generator embed/url)

@@ -38,8 +38,9 @@
   (if (or (member "instructor" activeclasses) (member "staff" activeclasses))
             
       (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
-          ((set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
-           (student-unauth-page request))
+          ((admin-unauth-page request)
+           (set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
+           )
           (admin-unauth-page request))
             
        (student-start request))

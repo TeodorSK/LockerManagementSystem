@@ -588,7 +588,10 @@
                                                              `(div ,(locker-owner-name a-db id)                                                           
                                                                    (form ([action ,(embed/url student-details-handler)][method "PUT"])
                                                                          (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
-                                                                         (input ([class ,(button-style-class)][type "submit"][value "Student Details"]))))
+                                                                         (input ([class ,(button-style-class)][type "submit"][value "Student Details"])))
+                                                                   (form ([action ,(embed/url release-locker-handler)][method "DELETE"])                                                                         
+                                                                         (input ([class ,(button-style-class)][type "submit"][value "Release locker"]))
+                                                                         ))
                                                              `(div
                                                                "None"
                                                                (form ([action ,(embed/url add-student-locker-handler)])
@@ -639,6 +642,10 @@
 
   (define (set-fixed-handler request)
     (set-locker-fixed! a-db locker-details-id)
+    (render-locker-details a-db request))
+
+  (define (release-locker-handler request)
+    (release-student-locker a-db locker-details-id)
     (render-locker-details a-db request))
 
   (define (add-note-handler request)

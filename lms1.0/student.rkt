@@ -22,13 +22,16 @@
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Student start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (student-start request [a-db (init-db! (build-path files-path "database.db"))])
-  (print (string->number (extract-binding/single 'cas-studentnumber (request-headers request))))
-  (print (all-students a-db))
-  (if (not (member (string->number (extract-binding/single 'cas-studentnumber (request-headers request))) (all-students a-db)))
-      (student-unauth-page request)
-      ((set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
-       (render-student-dashboard request a-db))
-      ))
+;  (print (string->number (extract-binding/single 'cas-studentnumber (request-headers request))))
+;  (print (all-students a-db))
+
+  (set! student-id (extract-binding/single 'cas-studentnumber (request-headers request)))
+  
+  (if (not (member (string->number student-id) (all-students a-db)))
+      (student-unauth-page request)      
+      (render-student-dashboard request a-db))
+      
+  )
 
 (define (student-unauth-page request)
   (response/xexpr

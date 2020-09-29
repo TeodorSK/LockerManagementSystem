@@ -31,21 +31,25 @@
   
   (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
   
-;  (print activeclasses)  
-;  mine is:
-;  ("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
+  ;  (print activeclasses)  
+  ;  mine is:
+  ;  ("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
 
   (if (member "staff" activeclasses)
-      
-      (;if staff, also check local record, if not there, help contact page
-       (is-admin? (extract-binding/single 'cas-employeeid (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
-       (set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
-       (render-admin-dashboard request))
+            
+      (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
+          ((set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
+           (render-admin-dashboard request))
+          (admin-unauth-page request))
       
       (;if student, also check database, if not there, help contact page
        (render-student-dashboard request)))
 
   )
+
+(define (admin-unauth-page request)
+  (response/xexpr
+   `(html (p "Error: You are trying to access the admin dashboard, but you are not an authorized administrator. If you believe this is an error please contact tsandelkonjevic [at] ryerson [dot] ca"))))
 
 ;;OBSOLETE - only used for local login testing
 ;;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -82,7 +86,7 @@
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Admin dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-admin-dashboard request [a-db (init-db! (build-path files-path "database.db"))]) 
-   (define (response-generator embed/url)
+  (define (response-generator embed/url)
     (html-wrap
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
@@ -272,11 +276,11 @@
                       (select ([style "max-width:100%"][name "program"][id "program"])                              
                               (option ([value ,(if (exists-binding? 'program (request-bindings request)) program "")])"Select Program")
                               ,@(map (λ (str) `(option ([value ,str]) ,str)) (all-programs a-db))) (br) (br)
-                      (input ([style "width: 100%"][type "text"][name "email"][id "email"][placeholder "Email"])) (br) (br)
-                      ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                      
-                      ,(checkmark "awaiting" "awaiting" "Awaiting locker" (if (and (null-string? awaiting) filtered?) #f #t))
-                      (input ([type "hidden"][name "filtered"][value "yes"]))
-                      (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
+                                                                                                   (input ([style "width: 100%"][type "text"][name "email"][id "email"][placeholder "Email"])) (br) (br)
+                                                                                                   ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                      
+                                                                                                   ,(checkmark "awaiting" "awaiting" "Awaiting locker" (if (and (null-string? awaiting) filtered?) #f #t))
+                                                                                                   (input ([type "hidden"][name "filtered"][value "yes"]))
+                                                                                                   (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
                                  
 
                 (p ((style "border-top: 3px dashed #bbb")))
@@ -315,7 +319,7 @@
       (td ,(number->string an-id))
       (td ,(student-name a-db an-id) (br)
           (p ([style "font-size: smaller"])
-;             ,(student-email a-db an-id)
+             ;             ,(student-email a-db an-id)
              ,(substring (student-email a-db an-id) 0 10) "...")) ;sample emails too long, mess up css
       (td (span ([style ,(string-append (cond [(student-assigned-locker? a-db an-id) "background-color:#86E660;"]
                                               [(student-awaiting-locker? a-db an-id) "background-color:#2196F3;"]
@@ -382,8 +386,8 @@
                 ,(if (not (empty? students-without-lockers))
                      `(p ,(render-table students-without-lockers lockers))       
                      (if enough-lockers? `(p
-                           (img ((style "max-width:10%;height:auto;")(src "warning.png")))
-                           "Error! No valid students selected. Please go back and select students you wish to assign lockers to.")
+                                           (img ((style "max-width:10%;height:auto;")(src "warning.png")))
+                                           "Error! No valid students selected. Please go back and select students you wish to assign lockers to.")
                          `(p
                            (img ((style "max-width:10%;height:auto;")(src "warning.png")))
                            "Error! More students selected than available lockers.")))
@@ -522,7 +526,7 @@
 
                 ,(if (not (empty? lockers-with-locks))
                      `(p (h3 "Warning: following lockers already have locks")
-                       ,(render-table lockers-with-locks assigned-locks))
+                         ,(render-table lockers-with-locks assigned-locks))
                      `(p))
                  
                 ))))
@@ -580,27 +584,27 @@
                                                  `(div ,(number->string (lock-id a-db id)))
                                                  `(div "No Lock Assigned!"))))
                  (tr (td (h3 "Locker assigned to:"))(td ((class "w3-right-align"))
-                                                  ,(if (locker-assigned? a-db id)
-                                                       `(div ,(locker-owner-name a-db id)                                                           
-                                                             (form ([action ,(embed/url student-details-handler)][method "PUT"])
-                                                                   (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
-                                                                   (input ([class ,(button-style-class)][type "submit"][value "Student Details"]))))
-                                                       `(div
-                                                         "None"
-                                                         (form ([action ,(embed/url add-student-locker-handler)])
-                                                               (label ((for "student-id")) "Student ID:")
-                                                               (input ([required "required"][type "text"][id "student-id"][name "student-id"]))
-                                                               (input ([type "hidden"][id "locker-id"][name "locker-id"][value ,id]))
-                                                               (input ([class ,(button-style-class)][type "submit"][value "Assign"])))))))
+                                                        ,(if (locker-assigned? a-db id)
+                                                             `(div ,(locker-owner-name a-db id)                                                           
+                                                                   (form ([action ,(embed/url student-details-handler)][method "PUT"])
+                                                                         (input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))
+                                                                         (input ([class ,(button-style-class)][type "submit"][value "Student Details"]))))
+                                                             `(div
+                                                               "None"
+                                                               (form ([action ,(embed/url add-student-locker-handler)])
+                                                                     (label ((for "student-id")) "Student ID:")
+                                                                     (input ([required "required"][type "text"][id "student-id"][name "student-id"]))
+                                                                     (input ([type "hidden"][id "locker-id"][name "locker-id"][value ,id]))
+                                                                     (input ([class ,(button-style-class)][type "submit"][value "Assign"])))))))
                  (tr (td (h3 "Locker status: ")) (td ((class "w3-right-align")) (form ([action ,(embed/url (if (locker-broken? a-db id) set-fixed-handler set-broken-handler))][method "PUT"])
-                                                                                          (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
-                                                                                          ,(if (locker-broken? a-db id)
-                                                                                               `(div
-                                                                                                 (div ([class "w3-orange w3-center"]) "Broken")
-                                                                                                 (input ([class ,(button-style-class)][type "submit"][value "Set fixed"])))
-                                                                                               `(div
-                                                                                                 (div ([class "w3-blue w3-center"]) "Fixed")
-                                                                                                 (input ([class ,(button-style-class)][type "submit"][value "Set broken"]))))))) 
+                                                                                      (input ([type "hidden"][id "locker-details-id"][name "locker-details-id"][value ,id]))
+                                                                                      ,(if (locker-broken? a-db id)
+                                                                                           `(div
+                                                                                             (div ([class "w3-orange w3-center"]) "Broken")
+                                                                                             (input ([class ,(button-style-class)][type "submit"][value "Set fixed"])))
+                                                                                           `(div
+                                                                                             (div ([class "w3-blue w3-center"]) "Fixed")
+                                                                                             (input ([class ,(button-style-class)][type "submit"][value "Set broken"]))))))) 
                  (tr (td (h3 "Notes:")) (td ((class "w3-right-align"))
                                             ,@(map (λ (a-note-id) (format-notes a-note-id embed/url)) (locker-notes a-db id))
                                             (form ([method "POST"][action ,(embed/url add-note-handler)])
@@ -752,9 +756,9 @@
                           ((locker-assigned? a-db locker-id) (string-append "Warning! Selected locker is already assigned: " locker-id))))
 
   (define all-ok? (and (locker-exists? a-db locker-id)
-                           (student-exists? a-db student-id)
-                           (not (student-assigned-locker? a-db student-id))
-                           (not (locker-assigned? a-db locker-id))))
+                       (student-exists? a-db student-id)
+                       (not (student-assigned-locker? a-db student-id))
+                       (not (locker-assigned? a-db locker-id))))
   
   (define (response-generator embed/url)
     (html-wrap
@@ -763,19 +767,19 @@
                 (h2 "Confirm locker assignment")
 
                 ,(if all-ok?
-                (nav-button (embed/url confirm-handler) "Confirm"
-                             #:hidden-fields `(input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id])))
-                `(input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Confirm"))))
+                     (nav-button (embed/url confirm-handler) "Confirm"
+                                 #:hidden-fields `(input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id])))
+                     `(input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Confirm"))))
                 ,(nav-button (embed/url cancel-handler) "< Cancel"
                              #:hidden-fields `(input ([type "hidden"][id "student-details-id"][name "student-details-id"][value ,student-id]))))
            (div ((class "w3-twothird w3-card-4"))                
                 ,(if all-ok?
-                `(table ([class "w3-table w3-striped w3-bordered"])
-                       (th (h2 "Student Name"))(th (h2 "Locker ID"))
-                       (tr (td ,(student-name a-db student-id))(td ,locker-id)))
-                `(div (img ((style "max-width:10%;height:auto;")(src "warning.png")))
-                      ,error-msg
-                      ))
+                     `(table ([class "w3-table w3-striped w3-bordered"])
+                             (th (h2 "Student Name"))(th (h2 "Locker ID"))
+                             (tr (td ,(student-name a-db student-id))(td ,locker-id)))
+                     `(div (img ((style "max-width:10%;height:auto;")(src "warning.png")))
+                           ,error-msg
+                           ))
                                 
                 ))))
 
@@ -907,25 +911,25 @@
                 ,(if (empty? (extract-bindings 'id (request-bindings request)))
                      `(input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(value "Send")))
                      `(button ([class ,(button-style-class)][form "email"][type "submit"][name "send"]) "Send")) (br)
-                ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
+                                                                                                                 ,(nav-button (embed/url dashboard-handler) "< Back to Dashboard"))
            
            (div ((class "w3-twothird w3-card-4"))
                 (h2 ,(string-append "New message - " email-type))
                 ,(if (empty? (extract-bindings 'id (request-bindings request))) `(p
-                           (img ((style "max-width:10%;height:auto;")(src "warning.png")))
-                           "Error! No students/lockers selected. Please go back and select students/lockers you wish to include in message.") "")
+                                                                                  (img ((style "max-width:10%;height:auto;")(src "warning.png")))
+                                                                                  "Error! No students/lockers selected. Please go back and select students/lockers you wish to include in message.") "")
                 (form ([id "email"][action ,(embed/url send-handler)][method "POST"])
-                (table ((class "w3-table w3-bordered"))
-                       (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
-                       (tr (td "Subject: "
-                               (input ([type "text"]
-                                       [name "subject"]
-                                       [id "subject"]
-                                       [value ,(if (exists-binding? 'work-order (request-bindings request))
-                                                   "Locker repairs"
-                                                   "Mass email")]))))
-                       (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
-                                         ,email-body)))))))))
+                      (table ((class "w3-table w3-bordered"))
+                             (tr (td "To: " ,@(map (λ (r) (string-append r ", ")) recipients)))
+                             (tr (td "Subject: "
+                                     (input ([type "text"]
+                                             [name "subject"]
+                                             [id "subject"]
+                                             [value ,(if (exists-binding? 'work-order (request-bindings request))
+                                                         "Locker repairs"
+                                                         "Mass email")]))))
+                             (tr (td (textarea ([name "body"][id "body"][rows "10"][cols "60"])
+                                               ,email-body)))))))))
                                                          
 
   (define email-body
@@ -939,17 +943,17 @@
 
   (define (send-handler request)
     (smtp-send-message "localhost"
-                   "noreply@racket.cs.ryerson.ca"
-                   recipients
-                   (standard-message-header "noreply@racket.cs.ryerson.ca"
-                                            (list) ;to
-                                            (list) ;cc
-                                            recipients ;bcc
-                                            (extract-binding/single 'subject (request-bindings request)))
-                   (list (extract-binding/single 'body (request-bindings request))
-                         "------
+                       "noreply@racket.cs.ryerson.ca"
+                       recipients
+                       (standard-message-header "noreply@racket.cs.ryerson.ca"
+                                                (list) ;to
+                                                (list) ;cc
+                                                recipients ;bcc
+                                                (extract-binding/single 'subject (request-bindings request)))
+                       (list (extract-binding/single 'body (request-bindings request))
+                             "------
 This message was automatically generated by the locker management system. For any questions/concerns please email tsandelkonjevic@ryerson.ca")
-                   #:port-no 25)
+                       #:port-no 25)
     
     (render-admin-dashboard (redirect/get) a-db))
   
@@ -1014,9 +1018,9 @@ This message was automatically generated by the locker management system. For an
                  8005))
 
 (define timeout-manager (create-timeout-manager
-                          (λ (r) (response/xexpr `(html (p "Session expired. Please go back to main page."))))
-                          3600
-                          3600))
+                         (λ (r) (response/xexpr `(html (p "Session expired. Please go back to main page."))))
+                         3600
+                         3600))
 
 (serve/servlet start               
                #:quit? #f

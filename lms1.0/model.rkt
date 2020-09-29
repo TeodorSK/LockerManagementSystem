@@ -68,9 +68,10 @@
 ;  (map extract-student-data-from-row (list-tail (csv->list file) 1 ));list-tail to chop of header row
   (csv-map extract-student-data-from-row file))
 
-(define (is-admin? id auth-file)  
-  (print (csv->list auth-file))   
-  )
+(define (is-admin? id auth-file)
+  (define admin-list (csv->list auth-file))
+  (if (member id admin-list) #t #f))
+  
 
 (define (unique-student-id? a-db student-id)
   (= 0 (query-value

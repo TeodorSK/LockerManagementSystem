@@ -39,7 +39,7 @@
             
       (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
           ((set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request)))     
-           (render-admin-dashboard request))
+           (student-start request))
           (admin-unauth-page request))
       
       (;if student, also check database, if not there, help contact page
@@ -101,10 +101,6 @@
                 (h4 "Import")                
                 ,(nav-button (embed/url upload-lockers-handler) "Import Lockers")
                 ,(nav-button (embed/url upload-students-handler) "Import Students")                
-                (p ((style "border-top: 3px dashed #bbb")))
-                (h4 "Export")
-                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Lockers"))) (br) ;placeholders                 
-                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Students"))) (br) ;placeholders
                 (p ((style "border-top: 3px dashed #bbb")))
                 (h4 "Other")
                 (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Lock sheet")))

@@ -41,7 +41,7 @@
       
 
       (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
-          (render-admin-dashboard request)                
+          (student-start request)                
           (admin-unauth-page request))
             
        (student-start request))
@@ -292,11 +292,11 @@
 
            (div ((class "w3-twothird w3-card-4"))
                 (table ((style "width:100%"))
-                       (tr (td ([style "width: 30%"])(h1 "Students:"))
-                           (td (span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
+                       (tr (td ([style "width: 20%"])(h1 "Students:"))
+                           (td ([style "width: 40%"])(span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
                                (span ([style "background-color:#2196F3; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Awaiting")
-                           (td ,(if (any-outstanding-requests? a-db) "❕ New requests awaiting" "✓ No new requests"))
-                           (td ([style "width: 30%"])(img ((style "max-width:30%;height:auto;float:right")(src "students.jpg"))))))
+                           (td ([style "width: 30%"]),(if (any-outstanding-requests? a-db) "❕ New requests awaiting" "✓ No new requests"))
+                           (td ([style "width: 10%"])(img ((style "max-width:30%;height:auto;float:right")(src "students.jpg"))))))
                 ,(if (and (zero? student-count) filtered?)                                             
                      `(p "No results found according to filter settings.")
                      `(p "Total results:" ,(if filtered? (number->string student-count) (number->string (length (all-students a-db))))))

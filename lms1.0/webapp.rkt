@@ -278,7 +278,7 @@
                                                                                                    (input ([style "width: 100%"][type "text"][name "email"][id "email"][placeholder "Email"])) (br) (br)
                                                                                                    ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                                                                                                   
                                                                                                    ,(checkmark "awaiting" "awaiting" "Awaiting locker" (if (and (null-string? awaiting) filtered?) #f #t))
-                                                                                                   ,(checkmark "no-locker" "no-locker" "Has locker" (if (and (null-string? no-locker) filtered?) #f #t))                      
+                                                                                                   ,(checkmark "no-locker" "no-locker" "No locker" (if (and (null-string? no-locker) filtered?) #f #t))                      
                                                                                                    (input ([type "hidden"][name "filtered"][value "yes"]))
                                                                                                    (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
                                  
@@ -295,6 +295,7 @@
                        (tr (td ([style "width: 30%"])(h1 "Students:"))
                            (td (span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
                                (span ([style "background-color:#2196F3; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Awaiting locker")
+                           (td ,(if (any-outsanding-requests? a-db) "New requests!" "No new requests"))
                            (td ([style "width: 30%"])(img ((style "max-width:30%;height:auto;float:right")(src "students.jpg"))))))
                 ,(if (and (zero? student-count) filtered?)                                             
                      `(p "No results found according to filter settings.")

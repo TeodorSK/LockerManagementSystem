@@ -367,6 +367,10 @@
    "SELECT COUNT(1) FROM students WHERE requested_locker = 1 AND id = ?"
    student-id)))
 
+(define (any-outstanding-requests? a-db)
+  (ormap (λ (s) (student-awaiting-locker? a-db s)) (all-students a-db)))
+  
+
 (define (release-student-locker a-db locker-id)
   (query-exec
    a-db

@@ -41,7 +41,7 @@
       
 
       (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
-          (admin-unauth-page request)                
+          (render-admin-dashboard request)                
           (admin-unauth-page request))
             
        (student-start request))
@@ -247,10 +247,12 @@
   (define email (extract-bindings-safely 'email "%" request))
   (define has-locker (extract-bindings-safely 'has-locker "" request))
   (define awaiting (extract-bindings-safely 'awaiting "" request))
+  (define no-locker (extract-bindings-safely 'no-locker "" request))
+  
 
   (define filtered? (extract-bindings-safely 'filtered #f request)) ;only #t if user filters, #f if just navigating to page
 
-  (define filtered-students (filter-students a-db student-id firstname lastname program email has-locker awaiting))
+  (define filtered-students (filter-students a-db student-id firstname lastname program email has-locker awaiting no-locker))
   
   (define student-count (length filtered-students))
 
@@ -274,8 +276,9 @@
                               (option ([value ,(if (exists-binding? 'program (request-bindings request)) program "")])"Select Program")
                               ,@(map (λ (str) `(option ([value ,str]) ,str)) (all-programs a-db))) (br) (br)
                                                                                                    (input ([style "width: 100%"][type "text"][name "email"][id "email"][placeholder "Email"])) (br) (br)
-                                                                                                   ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                      
+                                                                                                   ,(checkmark "has-locker" "has-locker" "Has locker" (if (and (null-string? has-locker) filtered?) #f #t))                                                                                                   
                                                                                                    ,(checkmark "awaiting" "awaiting" "Awaiting locker" (if (and (null-string? awaiting) filtered?) #f #t))
+                                                                                                   ,(checkmark "no-locker" "no-locker" "Has locker" (if (and (null-string? no-locker) filtered?) #f #t))                      
                                                                                                    (input ([type "hidden"][name "filtered"][value "yes"]))
                                                                                                    (input ([class ,(button-style-class)][type "submit"][value "Filter"])))
                                  

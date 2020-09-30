@@ -120,9 +120,10 @@
       (insert-locker a-db (string->number locker-num) locker-location 0)
       "incorrect format (not unique or not int, str)"))
 
-(define (filter-students a-db student-id firstname lastname program email has-locker awaiting)
+(define (filter-students a-db student-id firstname lastname program email has-locker awaiting no-locker)
   (filter (λ (student) (or (and (student-assigned-locker? a-db student)(string=? has-locker "has-locker"))
-                         (and (not (student-assigned-locker? a-db student))(string=? awaiting "awaiting"))))
+                         (and (and (student-awaiting-locker? a-db student) (not (student-assigned-locker? a-db student)))(string=? awaiting "awaiting"))
+                         (and (and (not (student-awaiting-locker? a-db student)) (not (student-assigned-locker? a-db student)))(string=? no-locker "no-locker"))))
   (query-list
    a-db
    "SELECT id FROM students

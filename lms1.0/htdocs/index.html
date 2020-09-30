@@ -1,21 +1,10 @@
 <html>
-    <head>
-        <title>Testing Apache</title>
-    </head>
-    <body id="root">
-        <p>Apache is working!</p>
-        <script type="application/javascript">
-  var root = $('#root');
-  var url = '/'
-  $.ajax({
-    url: url,
-    method: 'GET',
-    success: function(xml, statusMessage, jqXHR) {
-      $(root).replaceWith(xml.documentElement);
-    },
-    error: function() {
-      alert('something went wrong!');
-    }
-  });
-    </body>
+  <head>
+    <title>
+      Locker Management System Login
+    </title>
+  </head>
+  <body>
+   <a href="racket.cs.ryerson.ca/webapp.rkt">Log in to Locker Management System</a>
+  </body>
 </html>

@@ -12,7 +12,6 @@
 
 (require "model.rkt")
 (require "student.rkt")
-;(require "userinfo.rkt")
 
 (define interface-version 'stateless)
 (provide interface-version gzip-stuffer start)
@@ -23,68 +22,20 @@
 
 (define (start request) (start-page request))
 
-;Local env
-;(define (start request) (render-login-page request))
-
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Start=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-(define (start-page request)  
-  
-  (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))
-  
-  ;  (print activeclasses)  
-  ;  mine is:
-  ;  ("authenticateduser" "staff" "formerstudent" "student" "formeremployee")
-
+(define (start-page request)    
+  (define activeclasses (string-split (extract-binding/single 'cas-activeclasses (request-headers request)) ","))  
   (set! admin-firstname (extract-binding/single 'cas-firstname (request-headers request))) 
-
-  (if (or (member "instructor" activeclasses) (member "staff" activeclasses))
-      
-
+  (if (or (member "instructor" activeclasses) (member "staff" activeclasses))      
       (if (is-admin? (extract-binding/single 'cas-employeenumber (request-headers request)) (open-input-file (build-path files-path "auth_admins")))
           (student-start request)                
-          (admin-unauth-page request))
-            
-       (student-start request))
-
-  )
+          (admin-unauth-page request))            
+       (student-start request)))
+  
 
 (define (admin-unauth-page request)
   (response/xexpr
    `(html (p "Error: You are trying to access the admin dashboard, but you are not an authorized administrator. If you believe this is an error please contact tsandelkonjevic [at] ryerson [dot] ca"))))
-
-;;OBSOLETE - only used for local login testing
-;;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Login Page=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-;(define (render-login-page request)
-;  (define (response-generator embed/url)
-;    (html-wrap
-;     `(div ((class "w3-row-padding"))
-;
-;           (div ((class "w3-card-4 w3-white w3-center"))
-;                (img ((style "max-width:50%;height:auto;")(src "ryerson_logo.png")))
-;                                                 
-;                (table (tr (td (form ([action ,(embed/url admin-login-handler)][method "GET"])
-;                                     (div ((style "text-align:center"))
-;                                          (label ((for "uname")) "admin-firstname") (br)
-;                                          (input ((type "text")(placeholder "Enter admin-firstname")(name "uname"))) (br)
-;                                          (label ((for "psw")) "Password") (br)
-;                                          (input ((type "password")(placeholder "Enter Password")(name "psw"))) (br)
-;                                       
-;                                          (input ([class ,(button-style-class)][type "submit"] [value "Login"]))(br)
-;                                          (label (input ((type "checkbox")(checked "checked")(name "remember"))" Remember me")))))
-;                           (td (h1 ((style "text-align:center"))"Ryerson Locker Management System")
-;                               (form ([action ,(embed/url student-login-handler)][method "GET"])
-;                                     (input ([type "text"][value "500791082"][name "cas-studentnumber"]))
-;                                     (input ([type "submit"][value "login as student"])))
-;                               )))))))                                                                                            
-;
-;  ;=-=-Handlers-=-=
-;  (define (student-login-handler request)
-;    (render-student-dashboard request))
-;
-;  (define (admin-login-handler request)
-;    (render-admin-dashboard request))     
-;  (send/suspend/dispatch response-generator))
-
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-Admin dashboard=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (define (render-admin-dashboard request [a-db (init-db! (build-path files-path "database.db"))]) 
   (define (response-generator embed/url)
@@ -293,10 +244,10 @@
            (div ((class "w3-twothird w3-card-4"))
                 (table ((style "width:100%"))
                        (tr (td ([style "width: 20%"])(h1 "Students:"))
-                           (td ([style "width: 40%"])(span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
+                           (td ([style "width: 30%"])(span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
                                (span ([style "background-color:#2196F3; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Awaiting")
-                           (td ([style "width: 30%"]),(if (any-outstanding-requests? a-db) "❕ New requests awaiting" "✓ No new requests"))
-                           (td ([style "width: 10%"])(img ((style "max-width:30%;height:auto;float:right")(src "students.jpg"))))))
+                           (td ([style "width: 20%"]),(if (any-outstanding-requests? a-db) "❕ New requests awaiting" "✓ No new requests"))
+                           (td ([style "width: 30%"])(img ((style "max-width:100%;height:auto;float:right")(src "students.jpg"))))))
                 ,(if (and (zero? student-count) filtered?)                                             
                      `(p "No results found according to filter settings.")
                      `(p "Total results:" ,(if filtered? (number->string student-count) (number->string (length (all-students a-db))))))
@@ -320,8 +271,8 @@
       (td ,(number->string an-id))
       (td ,(student-name a-db an-id) (br)
           (p ([style "font-size: smaller"])
-             ;             ,(student-email a-db an-id)
-             ,(substring (student-email a-db an-id) 0 10) "...")) ;sample emails too long, mess up css
+                          ,(student-email a-db an-id)))
+;             ,(substring (student-email a-db an-id) 0 10) "...") ;sample emails too long, mess up css
       (td (span ([style ,(string-append (cond [(student-assigned-locker? a-db an-id) "background-color:#86E660;"]
                                               [(student-awaiting-locker? a-db an-id) "background-color:#2196F3;"]
                                               [else ""])
@@ -907,7 +858,7 @@
                            ((exists-binding? 'work-order (request-bindings request)) "Work Order")))  
 
   (define recipients (cond ((exists-binding? 'mass-email (request-bindings request)) (map (λ (student-id) (student-email a-db student-id)) (extract-bindings 'id (request-bindings request))))
-                           ((exists-binding? 'work-order (request-bindings request)) (list "mrtheo1000@gmail.com")))) ;TODO: replace with fixit@ryerson.ca
+                           ((exists-binding? 'work-order (request-bindings request)) (list "tsandelkonjevic@ryerson.ca")))) ;TODO: replace with fixit@ryerson.ca
   
   
   (define (response-generator embed/url)
@@ -961,7 +912,7 @@
                                                 (extract-binding/single 'subject (request-bindings request)))
                        (list (extract-binding/single 'body (request-bindings request))
                              "------
-This message was automatically generated by the locker management system. For any questions/concerns please email tsandelkonjevic@ryerson.ca")
+This message was automatically generated by the locker management system. For any questions/concerns please email tsandelkonjevic [at] ryerson [dot] ca")
                        #:port-no 25)
     
     (render-admin-dashboard (redirect/get) a-db))

@@ -43,8 +43,7 @@
      `(div ((class "w3-row-padding"))
            (div ((class "w3-third w3-white w3-text-grey w3-card-4"))
                 (a ([href ,(embed/url dashboard-handler)])(img ([style "max-width:20%;"][src "home_btn.svg"])))
-                (h3 (string-append "Welcome back, " ,admin-firstname))
-                ;userinfo.rkt test
+                (h3 (string-append "Welcome back, " ,admin-firstname))               
 
                 (h4 "View")                                 
                 ,(nav-button (embed/url view-lockers-handler) "View Lockers")                
@@ -52,11 +51,7 @@
                 (p ((style "border-top: 3px dashed #bbb")))
                 (h4 "Import")                
                 ,(nav-button (embed/url upload-lockers-handler) "Import Lockers")
-                ,(nav-button (embed/url upload-students-handler) "Import Students")                
-                (p ((style "border-top: 3px dashed #bbb")))
-                (h4 "Other")
-                (input ((class "w3-block w3-btn w3-ripple w3-blue w3-disabled")(type "submit")(value "Export Lock sheet")))
-                (br)
+                ,(nav-button (embed/url upload-students-handler) "Import Students")   
                 )
            (div ((class "w3-twothird w3-card-4"))
                 (h3 "Select an option from the menu")
@@ -247,7 +242,7 @@
                            (td ([style "width: 30%"])(span ([style "background-color:#86E660; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Has locker" (br)
                                (span ([style "background-color:#2196F3; height: 25px; width: 25px; border-radius: 50%; display: inline-block; "])) " - Awaiting")
                            (td ([style "width: 20%"]),(if (any-outstanding-requests? a-db) "❕ New requests awaiting" "✓ No new requests"))
-                           (td ([style "width: 30%"])(img ((style "max-width:100%;height:auto;float:right")(src "students.jpg"))))))
+                           (td ([style "width: 30%"])(img ((style "max-width:50%;height:auto;float:right")(src "students.jpg"))))))
                 ,(if (and (zero? student-count) filtered?)                                             
                      `(p "No results found according to filter settings.")
                      `(p "Total results:" ,(if filtered? (number->string student-count) (number->string (length (all-students a-db))))))
@@ -858,7 +853,7 @@
                            ((exists-binding? 'work-order (request-bindings request)) "Work Order")))  
 
   (define recipients (cond ((exists-binding? 'mass-email (request-bindings request)) (map (λ (student-id) (student-email a-db student-id)) (extract-bindings 'id (request-bindings request))))
-                           ((exists-binding? 'work-order (request-bindings request)) (list "tsandelkonjevic@ryerson.ca")))) ;TODO: replace with fixit@ryerson.ca
+                           ((exists-binding? 'work-order (request-bindings request)) (list "fixit@ryerson.ca" "alina@ryerson.ca" "tsandelkonjevic@ryerson.ca"))))
   
   
   (define (response-generator embed/url)

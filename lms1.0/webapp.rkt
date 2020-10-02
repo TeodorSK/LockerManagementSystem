@@ -266,8 +266,8 @@
       (td ,(number->string an-id))
       (td ,(student-name a-db an-id) (br)
           (p ([style "font-size: smaller"])
-                          ,(student-email a-db an-id)))
-;             ,(substring (student-email a-db an-id) 0 10) "...") ;sample emails too long, mess up css
+;                          ,(student-email a-db an-id)))
+             ,(substring (student-email a-db an-id) 0 15) "...")) ;sample emails too long, mess up css
       (td (span ([style ,(string-append (cond [(student-assigned-locker? a-db an-id) "background-color:#86E660;"]
                                               [(student-awaiting-locker? a-db an-id) "background-color:#2196F3;"]
                                               [else ""])

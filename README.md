@@ -26,15 +26,10 @@ To download the source code, run the following command
 To run the webapp, run the following commands
 ```
   cd LockerManagementSystem/lms1.0
-  racket -t webapp.rkt
+  racket webapp.rkt
 ```
-Alternatively, open webapp.rkt using DrRacket and press Run (Ctrl-R)
 
-The app will run on URL localhost:8000/servlets/webapp.rkt
+The app will run on URL localhost:8005/webapp.rkt
 
 ## Login details
-For student dashboard uname: `student` 
-
-For admin dashboard uname: `admin` 
-
-No password required
+The system uses the CAS attribute `activeclasses` to determine user authorization. `staff` and `instructor` classes are given admin privileges, provided a local file containing employee numbers named `auth_admins`. Student privileges are given to users whose student number is present in the database.

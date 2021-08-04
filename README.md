@@ -33,3 +33,10 @@ The app will run on URL localhost:8005/webapp.rkt
 
 ## Login details
 The system uses the CAS attribute `activeclasses` to determine user authorization. `staff` and `instructor` classes are given admin privileges, provided in a file containing employee numbers named `auth-admins`, located in the `LockerManagementSystem/lms1.0/htdocs` directory. Student privileges are given to users whose student number is present in the database.
+
+## Credits
+
+- [Teodor Sandel-Konjevic](https://github.com/TeodorSK) - Developer
+- [Professor Marcus Santos](https://marcus3santos.github.io/) - Supervisor
+
+We are grateful for the support provided by the Faculty of Science at Ryerson University.

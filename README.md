@@ -37,6 +37,6 @@ The system uses the CAS attribute `activeclasses` to determine user authorizatio
 ## Credits
 
 - [Teodor Sandel-Konjevic](https://github.com/TeodorSK) - Developer
-- [Professor Marcus Santos](https://marcus3santos.github.io/) - Supervisor
+- [Professor Marcus Santos](https://github.com/marcus3santos) - Supervisor
 
 We are grateful for the support provided by the Faculty of Science at Ryerson University.
